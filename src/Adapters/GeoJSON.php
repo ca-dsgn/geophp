@@ -48,7 +48,7 @@ class GeoJSON implements GeoAdapterInterface
                 $geometries[] = $this->read($feature);
             }
 
-            return GeoPHP::geometryReduce($geometries);
+            return GeoPHP::geometryReduce($geometries) ?? throw new \RuntimeException('Invalid JSON');
         }
 
         // Check to see if it's a Feature

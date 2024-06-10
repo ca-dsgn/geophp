@@ -7,7 +7,26 @@ namespace Tochka\GeoPHP\Geometry;
  */
 interface GeometryInterface
 {
-    public function getGeos(): \GEOSGeometry;
+    public function getBBox(): ?BoundBox;
+
+    /**
+     * @return list<Point>
+     */
+    public function getPoints(): array;
+
+    /**
+     * @return list<GeometryInterface>|null
+     */
+    public function explode(): ?array;
+    public function greatCircleLength(): float; //meters
+    public function haversineLength(): float; //degrees
+
+    public function asArray(): array;
+    public function asText(): string;
+    public function asBinary(): string;
+
+    public function out(string $format, mixed ...$args): string;
+    public function getGeos(): ?\GEOSGeometry;
     public function setGeos(\GEOSGeometry $geos): void;
     public function getArea(): float;
     public function boundary(): ?GeometryInterface;
@@ -32,9 +51,9 @@ interface GeometryInterface
     public function equals(GeometryInterface $geometry): bool;
     public function isEmpty(): bool;
     public function isSimple(): bool;
-    public function envelope(): GeometryInterface;
+    public function envelope(): ?GeometryInterface;
     public function geometryType(): string;
-    public function getSRID(): int;
+    public function getSRID(): ?int;
     public function setSRID(int $srid): void;
     public function coordinateDimension(): int;
     public function isMeasured(): bool;

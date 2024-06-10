@@ -34,7 +34,7 @@ class GeoPHP
 
     // geoPHP::load($data, $type, $other_args);
     // if $data is an array, all passed in values will be combined into a single geometry
-    public static function load(mixed $data, string $type = null, mixed ...$args): GeometryInterface|false
+    public static function load(mixed $data, string $type = null, mixed ...$args): ?GeometryInterface
     {
         $typeMap = self::getAdapterMap();
 
@@ -47,7 +47,7 @@ class GeoPHP
 
             $detected = self::detectFormat($data);
             if (!$detected) {
-                return false;
+                return null;
             }
 
             $format = explode(':', $detected);
@@ -133,8 +133,8 @@ class GeoPHP
         if (!self::geosInstalled()) {
             return null;
         }
-        $wkb_writer = new \GEOSWKBWriter();
-        $wkb = $wkb_writer->writeHEX($geos);
+        $wkbWriter = new \GEOSWKBWriter();
+        $wkb = $wkbWriter->writeHEX($geos);
         $geometry = self::load($wkb, 'wkb', true);
         if ($geometry) {
             $geometry->setGeos($geos);
@@ -151,14 +151,13 @@ class GeoPHP
      * An array of geometries can be passed and they will be compiled into a single geometry
      *
      * @param array<GeometryInterface>|GeometryInterface $geometry
-     * @return GeometryInterface|false
      */
-    public static function geometryReduce(array|GeometryInterface $geometry): GeometryInterface|false
+    public static function geometryReduce(array|GeometryInterface $geometry): ?GeometryInterface
     {
         // If it's an array of one, then just parse the one
         if (is_array($geometry)) {
             if (empty($geometry)) {
-                return false;
+                return null;
             }
             if (count($geometry) === 1) {
                 return self::geometryReduce(array_shift($geometry));
@@ -210,7 +209,7 @@ class GeoPHP
         $geometryTypes = array_unique($geometryTypes);
 
         if (empty($geometryTypes)) {
-            return false;
+            return null;
         }
 
         if (count($geometryTypes) === 1) {
@@ -219,7 +218,7 @@ class GeoPHP
             } else {
                 $class = self::getMultiGeometryClassName($geometryTypes[0]);
                 if ($class === null) {
-                    return false;
+                    return null;
                 }
                 return new $class($geometries);
             }

@@ -3,7 +3,6 @@
 namespace Tochka\GeoPHP\Adapters;
 
 use Tochka\GeoPHP\Geometry\BoundBox;
-use Tochka\GeoPHP\Geometry\CommonGeometryInterface;
 use Tochka\GeoPHP\Geometry\GeometryInterface;
 use Tochka\GeoPHP\Geometry\LineString;
 use Tochka\GeoPHP\Geometry\MultiPoint;
@@ -23,14 +22,14 @@ class GoogleGeocode implements GeoAdapterInterface
      *
      * @param string $input Address to geocode
      * @param string $returnType Type of Geometry to return. Can either be 'points' or 'bounds' (polygon)
-     * @param CommonGeometryInterface|BoundBox|null $bounds Limit the search area to within this region. For example
+     * @param GeometryInterface|BoundBox|null $bounds Limit the search area to within this region. For example
      *                                by default geocoding "Cairo" will return the location of Cairo Egypt.
      *                                If you pass a polygon of illinois, it will return Cairo IL.
      * @param bool $returnMultiple - Return all results in a multipoint or multipolygon
      */
-    public function read(string $input, string $returnType = 'point', CommonGeometryInterface|BoundBox|null $bounds = null, bool $returnMultiple = false): GeometryInterface
+    public function read(string $input, string $returnType = 'point', GeometryInterface|BoundBox|null $bounds = null, bool $returnMultiple = false): GeometryInterface
     {
-        if ($bounds instanceof CommonGeometryInterface) {
+        if ($bounds instanceof GeometryInterface) {
             $bounds = $bounds->getBBox();
         }
         if ($bounds instanceof BoundBox) {

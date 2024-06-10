@@ -40,7 +40,7 @@ class KML implements GeoAdapterInterface
             throw new \RuntimeException("Invalid KML: " . $text);
         }
 
-        return $this->geometryFromXML($xml);
+        return $this->geometryFromXML($xml) ?? throw new \RuntimeException("Invalid KML: " . $text);
     }
 
     /**
@@ -56,7 +56,7 @@ class KML implements GeoAdapterInterface
         return $this->geometryToKML($geometry, $nss);
     }
 
-    private function geometryFromXML(\DOMDocument $document): GeometryInterface
+    private function geometryFromXML(\DOMDocument $document): ?GeometryInterface
     {
         $geometries = [];
 

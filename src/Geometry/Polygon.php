@@ -137,7 +137,7 @@ class Polygon extends Collection
         return $maxPoint;
     }
 
-    public function exteriorRing(): GeometryInterface
+    public function exteriorRing(): LineString
     {
         if ($this->isEmpty()) {
             return new LineString();

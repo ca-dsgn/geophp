@@ -54,10 +54,10 @@ class GeoRSS implements GeoAdapterInterface
             throw new \RuntimeException("Invalid GeoRSS: " . $text);
         }
 
-        return $this->geometryFromXML($xml);
+        return $this->geometryFromXML($xml) ?? throw new \RuntimeException("Invalid GeoRSS: " . $text);
     }
 
-    private function geometryFromXML(\DOMDocument $document): GeometryInterface
+    private function geometryFromXML(\DOMDocument $document): ?GeometryInterface
     {
         $geometries = [];
         $geometries = array_merge($geometries, $this->parsePoints($document));

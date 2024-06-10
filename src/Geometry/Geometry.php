@@ -9,12 +9,12 @@ use Tochka\GeoPHP\GeoPHP;
  *
  * @api
  */
-abstract class Geometry implements GeometryInterface, CommonGeometryInterface
+abstract class Geometry implements GeometryInterface
 {
     private \GEOSGeometry|null $geos = null;
     private ?int $srid = null;
 
-    public function getSRID(): int
+    public function getSRID(): ?int
     {
         return $this->srid;
     }
@@ -34,7 +34,7 @@ abstract class Geometry implements GeometryInterface, CommonGeometryInterface
     /**
      * @throws \Exception
      */
-    public function envelope(): GeometryInterface
+    public function envelope(): ?GeometryInterface
     {
         if ($this->isEmpty()) {
             return new Polygon();
@@ -73,7 +73,7 @@ abstract class Geometry implements GeometryInterface, CommonGeometryInterface
     }
 
 
-    public function getGeos(): \GEOSGeometry
+    public function getGeos(): ?\GEOSGeometry
     {
         // If it's already been set, just return it
         if ($this->geos && GeoPHP::geosInstalled()) {
@@ -228,7 +228,7 @@ abstract class Geometry implements GeometryInterface, CommonGeometryInterface
             if (is_array($geometry)) {
                 $geom = $this->getGeos();
                 foreach ($geometry as $item) {
-                    $geom = $geom->union($item->geos());
+                    $geom = $geom->union($item->getGeos());
                 }
                 return GeoPHP::geosToGeometry($geom);
             } else {

@@ -43,6 +43,9 @@ class WKT implements GeoAdapterInterface
             $reader = new \GEOSWKTReader();
 
             $geometry = GeoPHP::geosToGeometry($reader->read($input));
+            if ($geometry === null) {
+                throw new \RuntimeException('Error while read WKT');
+            }
             if ($srid) {
                 $geometry->setSRID($srid);
             }
@@ -262,7 +265,7 @@ class WKT implements GeoAdapterInterface
         if (GeoPHP::geosInstalled()) {
             $writer = new \GEOSWKTWriter();
             $writer->setTrim(true);
-            return $writer->write($geometry->geos());
+            return $writer->write($geometry->getGeos());
         }
 
         if ($geometry->isEmpty()) {
