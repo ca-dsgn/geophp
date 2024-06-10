@@ -111,7 +111,7 @@ class Point extends Geometry
         return 0;
     }
 
-    public function greatCircleLength(): float
+    public function greatCircleLength(int $radius = 6378137): float
     {
         return 0;
     }

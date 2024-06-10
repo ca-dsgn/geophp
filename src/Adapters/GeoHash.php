@@ -92,8 +92,8 @@ class GeoHash implements GeoAdapterInterface
     private function encodePoint(Point $point, ?float $precision = null): string
     {
         if ($precision === null) {
-            $lap = strlen($point->getY()) - strpos($point->getY(), ".");
-            $lop = strlen($point->getX()) - strpos($point->getX(), ".");
+            $lap = strlen((string) $point->getY()) - strpos((string) $point->getY(), '.');
+            $lop = strlen((string) $point->getX()) - strpos((string) $point->getX(), '.');
             $precision = pow(10, -max($lap - 1, $lop - 1, 0)) / 2;
         }
 
@@ -216,8 +216,8 @@ class GeoHash implements GeoAdapterInterface
         $ll['minlon'] = $minlon;
         $ll['maxlat'] = $maxlat;
         $ll['maxlon'] = $maxlon;
-        $ll['medlat'] = round(($minlat + $maxlat) / 2, max(1, -round(log10($latE))) - 1);
-        $ll['medlon'] = round(($minlon + $maxlon) / 2, max(1, -round(log10($lonE))) - 1);
+        $ll['medlat'] = round(($minlat + $maxlat) / 2, (int) max(1, -round(log10($latE))) - 1);
+        $ll['medlon'] = round(($minlon + $maxlon) / 2, (int) max(1, -round(log10($lonE))) - 1);
         return $ll;
     }
 }

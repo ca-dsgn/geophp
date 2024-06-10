@@ -18,7 +18,7 @@ interface GeometryInterface
      * @return list<GeometryInterface>|null
      */
     public function explode(): ?array;
-    public function greatCircleLength(): float; //meters
+    public function greatCircleLength(int $radius = 6378137): float; //meters
     public function haversineLength(): float; //degrees
 
     public function asArray(): array;

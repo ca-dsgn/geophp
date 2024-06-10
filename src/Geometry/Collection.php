@@ -316,7 +316,7 @@ abstract class Collection extends Geometry
     }
 
     /**
-     * @return list<TType>|null
+     * @return list<GeometryInterface>|null
      */
     public function explode(): ?array
     {

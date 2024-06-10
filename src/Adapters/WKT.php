@@ -33,7 +33,7 @@ class WKT implements GeoAdapterInterface
             $parts = explode(';', $input);
             $input = $parts[1];
             $eparts = explode('=', $parts[0]);
-            $srid = $eparts[1];
+            $srid = (int) $eparts[1];
         } else {
             $srid = null;
         }
