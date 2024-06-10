@@ -1,0 +1,8 @@
+{
+    "preset": "per",
+    "rules": {
+        "array_syntax": {
+            "syntax": "short"
+        }
+    }
+}
