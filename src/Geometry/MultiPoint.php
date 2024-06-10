@@ -5,6 +5,7 @@ namespace Tochka\GeoPHP\Geometry;
 /**
  * MultiPoint: A collection Points
  * @api
+ * @extends Collection<Point>
  */
 class MultiPoint extends Collection
 {
@@ -13,19 +14,19 @@ class MultiPoint extends Collection
         return 'MultiPoint';
     }
 
-    public function numPoints()
+    public function numPoints(): int
     {
         return $this->numGeometries();
     }
 
-    public function isSimple()
+    public function isSimple(): bool
     {
         return true;
     }
 
     // Not valid for this geometry type
     // --------------------------------
-    public function explode()
+    public function explode(): ?array
     {
         return null;
     }

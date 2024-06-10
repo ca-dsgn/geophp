@@ -6,13 +6,14 @@ namespace Tochka\GeoPHP\Geometry;
  * LineString. A collection of Points representing a line.
  * A line can have more than one segment.
  * @api
+ * @extends Collection<Point>
  */
 class LineString extends Collection
 {
     /**
      * Constructor
      *
-     * @param array<Point> $points An array of at least two points with
+     * @param list<Point> $points An array of at least two points with
      * which to build the LineString
      */
     public function __construct(array $points = [])
@@ -26,43 +27,42 @@ class LineString extends Collection
     }
 
     // The boundary of a linestring is itself
-    public function boundary()
+    public function boundary(): GeometryInterface
     {
         return $this;
     }
 
-    public function startPoint()
+    public function startPoint(): ?Point
     {
         return $this->pointN(1);
     }
 
-    public function endPoint()
+    public function endPoint(): ?Point
     {
-        $last_n = $this->numPoints();
-        return $this->pointN($last_n);
+        return $this->pointN($this->numPoints());
     }
 
-    public function isClosed()
+    public function isClosed(): bool
     {
         return ($this->startPoint()->equals($this->endPoint()));
     }
 
-    public function isRing()
+    public function isRing(): bool
     {
         return ($this->isClosed() && $this->isSimple());
     }
 
-    public function numPoints()
+    public function numPoints(): int
     {
         return $this->numGeometries();
     }
 
-    public function pointN($n)
+    public function pointN(int $n): ?Point
     {
         return $this->geometryN($n);
     }
 
-    public function dimension()
+    public function dimension(): int
     {
         if ($this->isEmpty()) {
             return 0;
@@ -75,11 +75,12 @@ class LineString extends Collection
         return 0;
     }
 
-    public function length()
+    public function length(): float
     {
-        if ($this->geos()) {
-            return $this->geos()->length();
+        if ($this->getGeos()) {
+            return $this->getGeos()->length();
         }
+
         $length = 0;
         foreach ($this->getPoints() as $delta => $point) {
             $previous_point = $this->geometryN($delta);
@@ -90,7 +91,7 @@ class LineString extends Collection
         return $length;
     }
 
-    public function greatCircleLength($radius = 6378137)
+    public function greatCircleLength(int $radius = 6378137): float
     {
         $length = 0;
         $points = $this->getPoints();
@@ -121,7 +122,7 @@ class LineString extends Collection
         return $length;
     }
 
-    public function haversineLength()
+    public function haversineLength(): float
     {
         $degrees = 0;
         $points = $this->getPoints();
@@ -144,7 +145,7 @@ class LineString extends Collection
         return $degrees;
     }
 
-    public function explode()
+    public function explode(): array
     {
         $parts = [];
         $points = $this->getPoints();
@@ -157,10 +158,10 @@ class LineString extends Collection
         return $parts;
     }
 
-    public function isSimple()
+    public function isSimple(): bool
     {
-        if ($this->geos()) {
-            return $this->geos()->isSimple();
+        if ($this->getGeos()) {
+            return $this->getGeos()->isSimple();
         }
 
         $segments = $this->explode();

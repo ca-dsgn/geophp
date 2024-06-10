@@ -5,6 +5,7 @@ namespace Tochka\GeoPHP\Geometry;
 /**
  * GeometryCollection: A heterogenous collection of geometries
  * @api
+ * @extends Collection<GeometryInterface>
  */
 class GeometryCollection extends Collection
 {
@@ -13,10 +14,10 @@ class GeometryCollection extends Collection
     // because, for example, there would be no way to tell the difference between a
     // MultiPoint or a LineString, since they share the same structure (collection
     // of points). So we need to call out the type explicitly.
-    public function asArray()
+    public function asArray(): array
     {
         $array = [];
-        foreach ($this->components as $component) {
+        foreach ($this->getComponents() as $component) {
             $array[] = [
                 'type' => $component->geometryType(),
                 'components' => $component->asArray(),
@@ -26,13 +27,14 @@ class GeometryCollection extends Collection
     }
 
     // Not valid for this geomettry
-    public function boundary()
+    public function boundary(): ?GeometryInterface
     {
         return null;
     }
-    public function isSimple()
+
+    public function isSimple(): bool
     {
-        return null;
+        return false;
     }
 
     public function geometryType(): string

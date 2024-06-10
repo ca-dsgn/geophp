@@ -5,6 +5,7 @@ namespace Tochka\GeoPHP\Geometry;
 /**
  * MultiPolygon: A collection of Polygons
  * @api
+ * @extends Collection<Polygon>
  */
 class MultiPolygon extends Collection
 {

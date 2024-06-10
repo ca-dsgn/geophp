@@ -8,6 +8,8 @@ use Tochka\GeoPHP\GeoPHP;
  * Polygon: A polygon is a plane figure that is bounded by a closed path,
  * composed of a finite sequence of straight line segments
  * @api
+ *
+ * @extends Collection<LineString>
  */
 class Polygon extends Collection
 {
@@ -16,13 +18,15 @@ class Polygon extends Collection
         return 'Polygon';
     }
 
-    // The boundary of a polygin is it's outer ring
+    /**
+     * The boundary of a polygin is it's outer ring
+     */
     public function boundary(): GeometryInterface
     {
         return $this->exteriorRing();
     }
 
-    public function getArea($exteriorOnly = false, $signed = false): ?float
+    public function getArea($exteriorOnly = false, $signed = false): float
     {
         if ($this->isEmpty()) {
             return 0;
@@ -32,12 +36,15 @@ class Polygon extends Collection
             return $this->getGeos()->area();
         }
 
-        $exterior_ring = $this->components[0];
-        $pts = $exterior_ring->getComponents();
+        $exteriorRing = $this->getComponents()[0];
+        if (!$exteriorRing instanceof Collection) {
+            return 0;
+        }
+        $pts = $exteriorRing->getComponents();
 
         $c = count($pts);
-        if((int) $c == '0') {
-            return null;
+        if($c === 0) {
+            return 0;
         }
         $a = '0';
         foreach($pts as $k => $p) {
@@ -51,29 +58,30 @@ class Polygon extends Collection
             $area = abs(($a / 2));
         }
 
-        if ($exteriorOnly == true) {
+        if ($exteriorOnly) {
             return $area;
         }
-        foreach ($this->components as $delta => $component) {
+        foreach ($this->getComponents() as $delta => $component) {
             if ($delta != 0) {
-                $inner_poly = new Polygon([$component]);
-                $area -= $inner_poly->area();
+                $innerPoly = new Polygon([$component]);
+                $area -= $innerPoly->getArea();
             }
         }
+
         return $area;
     }
 
-    public function getCentroid()
+    public function getCentroid(): ?Point
     {
         if ($this->isEmpty()) {
             return null;
         }
 
-        if ($this->geos()) {
-            return GeoPHP::geosToGeometry($this->geos()->centroid());
+        if ($this->getGeos()) {
+            return GeoPHP::geosToGeometry($this->getGeos()->centroid());
         }
 
-        $exterior_ring = $this->components[0];
+        $exterior_ring = $this->getComponents()[0];
         $pts = $exterior_ring->getComponents();
 
         $c = count($pts);
@@ -81,7 +89,7 @@ class Polygon extends Collection
             return null;
         }
         $cn = ['x' => '0', 'y' => '0'];
-        $a = $this->area(true, true);
+        $a = $this->getArea(true, true);
 
         // If this is a polygon with no area. Just return the first point.
         if ($a == 0) {
@@ -125,15 +133,15 @@ class Polygon extends Collection
         return $max['point'];
     }
 
-    public function exteriorRing()
+    public function exteriorRing(): GeometryInterface
     {
         if ($this->isEmpty()) {
             return new LineString();
         }
-        return $this->components[0];
+        return $this->getComponents()[0];
     }
 
-    public function numInteriorRings()
+    public function numInteriorRings(): int
     {
         if ($this->isEmpty()) {
             return 0;
@@ -141,23 +149,24 @@ class Polygon extends Collection
         return $this->numGeometries() - 1;
     }
 
-    public function interiorRingN($n)
+    public function interiorRingN($n): ?GeometryInterface
     {
         return $this->geometryN($n + 1);
     }
 
-    public function dimension()
+    public function dimension(): int
     {
         if ($this->isEmpty()) {
             return 0;
         }
+
         return 2;
     }
 
-    public function isSimple()
+    public function isSimple(): bool
     {
-        if ($this->geos()) {
-            return $this->geos()->isSimple();
+        if ($this->getGeos()) {
+            return $this->getGeos()->isSimple();
         }
 
         $segments = $this->explode();
@@ -184,13 +193,13 @@ class Polygon extends Collection
      * @param boolean $pointOnVertex - whether a vertex should be considered "in" or not
      * @return boolean
      */
-    public function pointInPolygon($point, $pointOnBoundary = true, $pointOnVertex = true)
+    public function pointInPolygon(Point $point, bool $pointOnBoundary = true, bool $pointOnVertex = true): bool
     {
         $vertices = $this->getPoints();
 
         // Check if the point sits exactly on a vertex
-        if ($this->pointOnVertex($point, $vertices)) {
-            return $pointOnVertex ? true : false;
+        if ($this->pointOnVertex($point)) {
+            return $pointOnVertex;
         }
 
         // Check if the point is inside the polygon or on the boundary
@@ -232,19 +241,21 @@ class Polygon extends Collection
         }
     }
 
-    public function pointOnVertex($point)
+    public function pointOnVertex(Point $point): bool
     {
         foreach($this->getPoints() as $vertex) {
             if ($point->equals($vertex)) {
                 return true;
             }
         }
+
+        return false;
     }
 
 
     // Not valid for this geometry type
     // --------------------------------
-    public function length()
+    public function length(): ?float
     {
         return null;
     }

@@ -111,12 +111,12 @@ class Point extends Geometry
         return 0;
     }
 
-    public function greatCircleLength()
+    public function greatCircleLength(): float
     {
         return 0;
     }
 
-    public function haversineLength()
+    public function haversineLength(): float
     {
         return 0;
     }
@@ -127,7 +127,7 @@ class Point extends Geometry
         return $this;
     }
 
-    public function dimension()
+    public function dimension(): int
     {
         return 0;
     }
@@ -150,7 +150,7 @@ class Point extends Geometry
         return [$this];
     }
 
-    public function equals(Geometry $geometry): bool
+    public function equals(GeometryInterface $geometry): bool
     {
         if (!$geometry instanceof Point) {
             return false;
@@ -162,7 +162,7 @@ class Point extends Geometry
              * @see: http://php.net/manual/en/language.types.float.php
              * @see: http://tubalmartin.github.io/spherical-geometry-php/#LatLng
              */
-            return (abs($this->x() - $geometry->x()) <= 1.0E-9 && abs($this->y() - $geometry->y()) <= 1.0E-9);
+            return (abs($this->getX() - $geometry->getX()) <= 1.0E-9 && abs($this->getY() - $geometry->getY()) <= 1.0E-9);
         } elseif ($this->isEmpty() && $geometry->isEmpty()) {
             return true;
         } else {
@@ -180,47 +180,58 @@ class Point extends Geometry
     {
         return 0;
     }
-    public function geometryN($n)
+
+    public function geometryN(int $n): null
     {
         return null;
     }
-    public function startPoint()
+
+    public function startPoint(): null
     {
         return null;
     }
-    public function endPoint()
+
+    public function endPoint(): null
     {
         return null;
     }
-    public function isRing()
+
+    public function isRing(): false
+    {
+        return false;
+    }
+
+    public function isClosed(): false
+    {
+        return false;
+    }
+
+    public function pointN(int $n): null
     {
         return null;
     }
-    public function isClosed()
+
+    public function exteriorRing(): null
     {
         return null;
     }
-    public function pointN($n)
+
+    public function numInteriorRings(): null
     {
         return null;
     }
-    public function exteriorRing()
+
+    public function interiorRingN(int $n): null
     {
         return null;
     }
-    public function numInteriorRings()
+
+    public function pointOnSurface(): null
     {
         return null;
     }
-    public function interiorRingN($n)
-    {
-        return null;
-    }
-    public function pointOnSurface()
-    {
-        return null;
-    }
-    public function explode()
+
+    public function explode(): null
     {
         return null;
     }

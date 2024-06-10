@@ -13,9 +13,13 @@ interface CommonGeometryInterface
      * @return list<Point>
      */
     public function getPoints(): array;
-    public function explode();
-    public function greatCircleLength(); //meters
-    public function haversineLength(); //degrees
+
+    /**
+     * @return list<GeometryInterface>|null
+     */
+    public function explode(): ?array;
+    public function greatCircleLength(): float; //meters
+    public function haversineLength(): float; //degrees
 
     public function asArray(): array;
     public function asText(): string;

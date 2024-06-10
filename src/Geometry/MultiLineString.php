@@ -6,6 +6,7 @@ namespace Tochka\GeoPHP\Geometry;
  * MultiLineString: A collection of LineStrings
  *
  * @api
+ * @extends Collection<LineString>
  */
 class MultiLineString extends Collection
 {
@@ -15,9 +16,9 @@ class MultiLineString extends Collection
     }
 
     // MultiLineString is closed if all it's components are closed
-    public function isClosed()
+    public function isClosed(): bool
     {
-        foreach ($this->components as $line) {
+        foreach ($this->getComponents() as $line) {
             if (!$line->isClosed()) {
                 return false;
             }

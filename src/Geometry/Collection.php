@@ -13,21 +13,22 @@ use Tochka\GeoPHP\GeoPHP;
  * of Points. A Polygon is a collection of LineStrings etc.
  *
  * @api
+ * @template TType of GeometryInterface
  */
 abstract class Collection extends Geometry
 {
     /**
-     * @var array<Geometry>
+     * @var list<TType>
      */
-    protected array $components = [];
+    private array $components = [];
 
     /**
-     * @param array<Geometry> $components array of geometries
+     * @param list<TType> $components array of geometries
      */
     public function __construct(array $components = [])
     {
         foreach ($components as $component) {
-            if ($component instanceof Geometry) {
+            if ($component instanceof GeometryInterface) {
                 $this->components[] = $component;
             } else {
                 throw new \RuntimeException("Cannot create a collection with non-geometries");
@@ -37,6 +38,7 @@ abstract class Collection extends Geometry
 
     /**
      * Returns Collection component geometries
+     * @return list<TType>
      */
     public function getComponents(): array
     {
@@ -151,7 +153,7 @@ abstract class Collection extends Geometry
      * By default, the boundary of a collection is the boundary of it's components
      * @throws \Exception
      */
-    public function boundary(): GeometryInterface
+    public function boundary(): ?GeometryInterface
     {
         if ($this->isEmpty()) {
             return new LineString();
@@ -173,27 +175,26 @@ abstract class Collection extends Geometry
         return count($this->components);
     }
 
-    // Note that the standard is 1 based indexing
-    public function geometryN($n)
+    /**
+     * Note that the standard is 1 based indexing
+     * @psalm-return TType|null
+     */
+    public function geometryN(int $n): ?GeometryInterface
     {
-        $n = intval($n);
-        if (array_key_exists($n - 1, $this->components)) {
-            return $this->components[$n - 1];
-        } else {
-            return null;
-        }
+        return $this->components[$n - 1] ?? null;
     }
 
-    public function length(): float
+    public function length(): ?float
     {
         $length = 0;
-        foreach ($this->components as $_ => $component) {
+        foreach ($this->components as $component) {
             $length += $component->length();
         }
+
         return $length;
     }
 
-    public function greatCircleLength($radius = 6378137)
+    public function greatCircleLength(int $radius = 6378137): float
     {
         $length = 0;
         foreach ($this->components as $component) {
@@ -202,7 +203,7 @@ abstract class Collection extends Geometry
         return $length;
     }
 
-    public function haversineLength()
+    public function haversineLength(): float
     {
         $length = 0;
         foreach ($this->components as $component) {
@@ -211,7 +212,7 @@ abstract class Collection extends Geometry
         return $length;
     }
 
-    public function dimension()
+    public function dimension(): int
     {
         $dimension = 0;
         foreach ($this->components as $component) {
@@ -255,10 +256,10 @@ abstract class Collection extends Geometry
         return $points;
     }
 
-    public function equals($geometry)
+    public function equals(GeometryInterface $geometry): bool
     {
-        if ($this->geos()) {
-            return $this->geos()->equals($geometry->geos());
+        if ($this->getGeos()) {
+            return $this->getGeos()->equals($geometry->getGeos());
         }
 
         // To test for equality we check to make sure that there is a matching point
@@ -294,10 +295,10 @@ abstract class Collection extends Geometry
         return true;
     }
 
-    public function isSimple()
+    public function isSimple(): bool
     {
-        if ($this->geos()) {
-            return $this->geos()->isSimple();
+        if ($this->getGeos()) {
+            return $this->getGeos()->isSimple();
         }
 
         // A collection is simple if all it's components are simple
@@ -310,12 +311,13 @@ abstract class Collection extends Geometry
         return true;
     }
 
-    public function explode()
+    public function explode(): ?array
     {
         $parts = [];
         foreach ($this->components as $component) {
             $parts = array_merge($parts, $component->explode());
         }
+
         return $parts;
     }
 
@@ -331,35 +333,35 @@ abstract class Collection extends Geometry
         return null;
     }
 
-    public function startPoint()
+    public function startPoint(): ?Point
     {
         return null;
     }
-    public function endPoint()
+    public function endPoint(): ?Point
     {
         return null;
     }
-    public function isRing()
+    public function isRing(): bool
+    {
+        return false;
+    }
+    public function isClosed(): bool
+    {
+        return false;
+    }
+    public function pointN(int $n): ?Point
     {
         return null;
     }
-    public function isClosed()
+    public function exteriorRing(): ?GeometryInterface
     {
         return null;
     }
-    public function pointN($n)
+    public function numInteriorRings(): ?int
     {
         return null;
     }
-    public function exteriorRing()
-    {
-        return null;
-    }
-    public function numInteriorRings()
-    {
-        return null;
-    }
-    public function interiorRingN($n)
+    public function interiorRingN(int $n): ?GeometryInterface
     {
         return null;
     }
