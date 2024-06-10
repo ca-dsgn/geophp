@@ -36,12 +36,11 @@ class KML implements GeoAdapterInterface
 
         // Load into DOMDocument
         $xml = new \DOMDocument();
-        $document = @$xml->loadXML($text);
-        if ($document === false) {
+        if (@$xml->loadXML($text) === false) {
             throw new \RuntimeException("Invalid KML: " . $text);
         }
 
-        return $this->geometryFromXML($document);
+        return $this->geometryFromXML($xml);
     }
 
     /**
@@ -57,7 +56,7 @@ class KML implements GeoAdapterInterface
         return $this->geometryToKML($geometry, $nss);
     }
 
-    private function geometryFromXML(\DomDocument $document): GeometryInterface
+    private function geometryFromXML(\DOMDocument $document): GeometryInterface
     {
         $geometries = [];
 
@@ -183,7 +182,7 @@ class KML implements GeoAdapterInterface
     }
 
     /**
-     * @psalm-return list<list{int, int}>
+     * @psalm-return list<list{string, string, ...string}>
      */
     private function extractCoordinates(\DOMElement $xml): array
     {

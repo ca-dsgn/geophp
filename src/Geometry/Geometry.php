@@ -59,13 +59,17 @@ abstract class Geometry implements GeometryInterface, CommonGeometryInterface
 
     public function out(string $format, mixed ...$args): string
     {
-        $type_map = GeoPHP::getAdapterMap();
-        $processor_type = $type_map[$format];
-        $processor = new $processor_type();
+        $typeMap = GeoPHP::getAdapterMap();
+        if (!array_key_exists($format, $typeMap)) {
+            throw new \RuntimeException('Unknown format: ' . $format);
+        }
+
+        $processorType = $typeMap[$format];
+        $processor = new $processorType();
 
         array_unshift($args, $this);
 
-        return $processor->write($args);
+        return $processor->write(...$args);
     }
 
 

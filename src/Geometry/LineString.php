@@ -145,6 +145,9 @@ class LineString extends Collection
         return $degrees;
     }
 
+    /**
+     * @return list<LineString>
+     */
     public function explode(): array
     {
         $parts = [];
@@ -178,18 +181,20 @@ class LineString extends Collection
         return true;
     }
 
-    // Utility function to check if any line sigments intersect
-    // Derived from http://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
-    public function lineSegmentIntersect($segment)
+    /**
+     * Utility function to check if any line sigments intersect
+     * Derived from http://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
+     */
+    public function lineSegmentIntersect(LineString $segment): bool
     {
-        $p0_x = $this->startPoint()->x();
-        $p0_y = $this->startPoint()->y();
-        $p1_x = $this->endPoint()->x();
-        $p1_y = $this->endPoint()->y();
-        $p2_x = $segment->startPoint()->x();
-        $p2_y = $segment->startPoint()->y();
-        $p3_x = $segment->endPoint()->x();
-        $p3_y = $segment->endPoint()->y();
+        $p0_x = $this->startPoint()->getX();
+        $p0_y = $this->startPoint()->getY();
+        $p1_x = $this->endPoint()->getX();
+        $p1_y = $this->endPoint()->getY();
+        $p2_x = $segment->startPoint()->getX();
+        $p2_y = $segment->startPoint()->getY();
+        $p3_x = $segment->endPoint()->getX();
+        $p3_y = $segment->endPoint()->getY();
 
         $s1_x = $p1_x - $p0_x;
         $s1_y = $p1_y - $p0_y;
@@ -210,6 +215,7 @@ class LineString extends Collection
             // Collision detected
             return true;
         }
+
         return false;
     }
 

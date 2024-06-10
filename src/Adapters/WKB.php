@@ -226,7 +226,7 @@ class WKB implements GeoAdapterInterface
     {
         // Set the coords
         if (!$point->isEmpty()) {
-            return pack('dd', $point->x(), $point->y());
+            return pack('dd', $point->getX(), $point->getY());
         } else {
             return '';
         }
@@ -239,7 +239,7 @@ class WKB implements GeoAdapterInterface
 
         // Set the coords
         foreach ($line->getComponents() as $point) {
-            $wkb .= pack('dd', $point->x(), $point->y());
+            $wkb .= pack('dd', $point->getX(), $point->getY());
         }
 
         return $wkb;

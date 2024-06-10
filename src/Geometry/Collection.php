@@ -13,7 +13,7 @@ use Tochka\GeoPHP\GeoPHP;
  * of Points. A Polygon is a collection of LineStrings etc.
  *
  * @api
- * @template TType of GeometryInterface
+ * @template-covariant TType of GeometryInterface
  */
 abstract class Collection extends Geometry
 {
@@ -167,7 +167,8 @@ abstract class Collection extends Geometry
         foreach ($this->components as $component) {
             $componentsBoundaries[] = $component->boundary();
         }
-        return GeoPHP::geometryReduce($componentsBoundaries);
+
+        return GeoPHP::geometryReduce(array_filter($componentsBoundaries));
     }
 
     public function numGeometries(): int
@@ -247,6 +248,9 @@ abstract class Collection extends Geometry
         return $num;
     }
 
+    /**
+     * @return list<Point>
+     */
     public function getPoints(): array
     {
         $points = [];
@@ -311,6 +315,9 @@ abstract class Collection extends Geometry
         return true;
     }
 
+    /**
+     * @return list<TType>|null
+     */
     public function explode(): ?array
     {
         $parts = [];

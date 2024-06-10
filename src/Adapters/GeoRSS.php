@@ -50,15 +50,14 @@ class GeoRSS implements GeoAdapterInterface
 
         // Load into DOMDocument
         $xml = new \DOMDocument();
-        $document = @$xml->loadXML($text);
-        if ($document === false) {
+        if (@$xml->loadXML($text) === false) {
             throw new \RuntimeException("Invalid GeoRSS: " . $text);
         }
 
-        return $this->geometryFromXML($document);
+        return $this->geometryFromXML($xml);
     }
 
-    private function geometryFromXML(\DomDocument $document): GeometryInterface
+    private function geometryFromXML(\DOMDocument $document): GeometryInterface
     {
         $geometries = [];
         $geometries = array_merge($geometries, $this->parsePoints($document));
@@ -103,7 +102,7 @@ class GeoRSS implements GeoAdapterInterface
     /**
      * @return list<Point>
      */
-    private function parsePoints(\DomDocument $document): array
+    private function parsePoints(\DOMDocument $document): array
     {
         $points = [];
         $pointElements = $document->getElementsByTagName('point');
@@ -123,7 +122,7 @@ class GeoRSS implements GeoAdapterInterface
     /**
      * @return list<LineString>
      */
-    private function parseLines(\DomDocument $document): array
+    private function parseLines(\DOMDocument $document): array
     {
         $lines = [];
         $lineElements = $document->getElementsByTagName('line');
@@ -137,7 +136,7 @@ class GeoRSS implements GeoAdapterInterface
     /**
      * @return list<Polygon>
      */
-    private function parsePolygons(\DomDocument $document): array
+    private function parsePolygons(\DOMDocument $document): array
     {
         $polygons = [];
         $polyElements = $document->getElementsByTagName('polygon');
@@ -159,7 +158,7 @@ class GeoRSS implements GeoAdapterInterface
      *
      * @return list<Polygon>
      */
-    private function parseBoxes(\DomDocument $document): array
+    private function parseBoxes(\DOMDocument $document): array
     {
         $polygons = [];
         $boxElements = $document->getElementsByTagName('box');
@@ -184,7 +183,7 @@ class GeoRSS implements GeoAdapterInterface
      *
      * @return list<Point>
      */
-    private function parseCircles(\DomDocument $document): array
+    private function parseCircles(\DOMDocument $document): array
     {
         $points = [];
         $circleElements = $document->getElementsByTagName('circle');

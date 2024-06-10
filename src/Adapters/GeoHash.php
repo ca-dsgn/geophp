@@ -131,7 +131,7 @@ class GeoHash implements GeoAdapterInterface
                     $latE /= 2;
                 }
             }
-            $hash .= self::TABLE[$chr];
+            $hash .= self::TABLE[(int) $chr];
             $i++;
             $error = min($latE, $lonE);
         }

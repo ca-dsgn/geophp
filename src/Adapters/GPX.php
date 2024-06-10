@@ -56,13 +56,12 @@ class GPX implements GeoAdapterInterface
         $text = preg_replace('/<!\[cdata\[(.*?)\]\]>/s', '', $text);
 
         // Load into DOMDocument
-        $xmlobj = new \DOMDocument();
-        $document = @$xmlobj->loadXML($text);
-        if ($document === false) {
+        $xml = new \DOMDocument();
+        if (@$xml->loadXML($text) === false) {
             throw new \RuntimeException("Invalid GPX: " . $text);
         }
 
-        return $this->geometryFromXML($document);
+        return $this->geometryFromXML($xml);
     }
 
     private function geometryFromXML(\DOMDocument $document): GeometryInterface
