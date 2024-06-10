@@ -6,8 +6,9 @@ namespace Tochka\GeoPHP\Geometry;
  * MultiPoint: A collection Points
  * @api
  * @extends Collection<Point>
+ * @psalm-immutable
  */
-class MultiPoint extends Collection
+readonly class MultiPoint extends Collection
 {
     public function geometryType(): string
     {

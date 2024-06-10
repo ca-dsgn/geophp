@@ -16,8 +16,9 @@ use Tochka\GeoPHP\GeoPHP;
 /**
  * PHP Geometry/GeoRSS encoder/decoder
  * @api
+ * @psalm-immutable
  */
-class GeoRSS implements GeoAdapterInterface
+readonly class GeoRSS implements GeoAdapterInterface
 {
     /**
      * Read GeoRSS string into geometry objects
@@ -50,6 +51,7 @@ class GeoRSS implements GeoAdapterInterface
 
         // Load into DOMDocument
         $xml = new \DOMDocument();
+        /** @psalm-suppress ImpureMethodCall */
         if (@$xml->loadXML($text) === false) {
             throw new \RuntimeException("Invalid GeoRSS: " . $text);
         }
@@ -105,10 +107,14 @@ class GeoRSS implements GeoAdapterInterface
     private function parsePoints(\DOMDocument $document): array
     {
         $points = [];
+        /** @psalm-suppress ImpureMethodCall */
         $pointElements = $document->getElementsByTagName('point');
-        foreach ($pointElements as $point) {
+        /** @psalm-suppress ImpureMethodCall */
+        $pointElementsIterator = $pointElements->getIterator();
+        foreach ($pointElementsIterator as $point) {
+            /** @psalm-suppress ImpureMethodCall */
             if ($point->hasChildNodes()) {
-                $pointArray = $this->getPointsFromCoords(trim($point->firstChild->nodeValue));
+                $pointArray = $this->getPointsFromCoords(trim($point->firstChild->nodeValue ?? ''));
             }
             if (!empty($pointArray)) {
                 $points[] = $pointArray[0];
@@ -125,9 +131,12 @@ class GeoRSS implements GeoAdapterInterface
     private function parseLines(\DOMDocument $document): array
     {
         $lines = [];
+        /** @psalm-suppress ImpureMethodCall */
         $lineElements = $document->getElementsByTagName('line');
-        foreach ($lineElements as $line) {
-            $components = $this->getPointsFromCoords(trim($line->firstChild->nodeValue));
+        /** @psalm-suppress ImpureMethodCall */
+        $lineElementsIterator = $lineElements->getIterator();
+        foreach ($lineElementsIterator as $line) {
+            $components = $this->getPointsFromCoords(trim($line->firstChild->nodeValue ?? ''));
             $lines[] = new LineString($components);
         }
         return $lines;
@@ -139,10 +148,14 @@ class GeoRSS implements GeoAdapterInterface
     private function parsePolygons(\DOMDocument $document): array
     {
         $polygons = [];
+        /** @psalm-suppress ImpureMethodCall */
         $polyElements = $document->getElementsByTagName('polygon');
-        foreach ($polyElements as $poly) {
+        /** @psalm-suppress ImpureMethodCall */
+        $polyElementsIterator = $polyElements->getIterator();
+        foreach ($polyElementsIterator as $poly) {
+            /** @psalm-suppress ImpureMethodCall */
             if ($poly->hasChildNodes()) {
-                $points = $this->getPointsFromCoords(trim($poly->firstChild->nodeValue));
+                $points = $this->getPointsFromCoords(trim($poly->firstChild->nodeValue ?? ''));
                 $exteriorRing = new LineString($points);
                 $polygons[] = new Polygon([$exteriorRing]);
             } else {
@@ -161,9 +174,12 @@ class GeoRSS implements GeoAdapterInterface
     private function parseBoxes(\DOMDocument $document): array
     {
         $polygons = [];
+        /** @psalm-suppress ImpureMethodCall */
         $boxElements = $document->getElementsByTagName('box');
-        foreach ($boxElements as $box) {
-            $parts = explode(' ', trim($box->firstChild->nodeValue));
+        /** @psalm-suppress ImpureMethodCall */
+        $boxElementsIterator = $boxElements->getIterator();
+        foreach ($boxElementsIterator as $box) {
+            $parts = explode(' ', trim($box->firstChild->nodeValue ?? ''));
             $components = [
                 new Point($parts[3], $parts[2]),
                 new Point($parts[3], $parts[0]),
@@ -186,9 +202,12 @@ class GeoRSS implements GeoAdapterInterface
     private function parseCircles(\DOMDocument $document): array
     {
         $points = [];
+        /** @psalm-suppress ImpureMethodCall */
         $circleElements = $document->getElementsByTagName('circle');
-        foreach ($circleElements as $circle) {
-            $parts = explode(' ', trim($circle->firstChild->nodeValue));
+        /** @psalm-suppress ImpureMethodCall */
+        $circleElementsIterator = $circleElements->getIterator();
+        foreach ($circleElementsIterator as $circle) {
+            $parts = explode(' ', trim($circle->firstChild->nodeValue ?? ''));
             $points[] = new Point($parts[1], $parts[0]);
         }
 

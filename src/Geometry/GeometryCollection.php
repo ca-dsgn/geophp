@@ -6,8 +6,9 @@ namespace Tochka\GeoPHP\Geometry;
  * GeometryCollection: A heterogenous collection of geometries
  * @api
  * @extends Collection<GeometryInterface>
+ * @psalm-immutable
  */
-class GeometryCollection extends Collection
+readonly class GeometryCollection extends Collection
 {
     // We need to override asArray. Because geometryCollections are heterogeneous
     // we need to specify which type of geometries they contain. We need to do this

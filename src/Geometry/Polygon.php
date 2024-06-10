@@ -10,14 +10,10 @@ use Tochka\GeoPHP\GeoPHP;
  * @api
  *
  * @extends Collection<LineString>
+ * @psalm-immutable
  */
-class Polygon extends Collection
+readonly class Polygon extends Collection
 {
-    public function geometryType(): string
-    {
-        return 'Polygon';
-    }
-
     /**
      * The boundary of a polygin is it's outer ring
      */
@@ -33,6 +29,7 @@ class Polygon extends Collection
         }
 
         if ($this->getGeos() && $exteriorOnly === false) {
+            /** @psalm-suppress ImpureMethodCall */
             return $this->getGeos()->area();
         }
 
@@ -78,6 +75,10 @@ class Polygon extends Collection
         }
 
         if ($this->getGeos()) {
+            /**
+             * @var Point|null
+             * @psalm-suppress ImpureMethodCall
+             */
             return GeoPHP::geosToGeometry($this->getGeos()->centroid());
         }
 
@@ -170,14 +171,18 @@ class Polygon extends Collection
     public function isSimple(): bool
     {
         if ($this->getGeos()) {
+            /** @psalm-suppress ImpureMethodCall */
             return $this->getGeos()->isSimple();
         }
 
         $segments = $this->explode();
+        if ($segments === null) {
+            return true;
+        }
 
         foreach ($segments as $i => $segment) {
             foreach ($segments as $j => $checkSegment) {
-                if ($i != $j) {
+                if ($i !== $j) {
                     if ($segment->lineSegmentIntersect($checkSegment)) {
                         return false;
                     }
@@ -256,11 +261,16 @@ class Polygon extends Collection
         return false;
     }
 
-
-    // Not valid for this geometry type
-    // --------------------------------
+    /**
+     * Not valid for this geometry type
+     */
     public function length(): ?float
     {
         return null;
+    }
+
+    public function geometryType(): string
+    {
+        return 'Polygon';
     }
 }

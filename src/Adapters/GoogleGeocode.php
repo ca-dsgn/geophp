@@ -14,8 +14,9 @@ use Tochka\GeoPHP\Geometry\Polygon;
  * PHP Google Geocoder Adapter
  *
  * @api
+ * @psalm-immutable
  */
-class GoogleGeocode implements GeoAdapterInterface
+readonly class GoogleGeocode implements GeoAdapterInterface
 {
     /**
      * Read an address string or array geometry objects
@@ -42,6 +43,7 @@ class GoogleGeocode implements GeoAdapterInterface
         $url .= '?address=' . urlencode($input);
         $url .= $boundsString;
         $url .= '&sensor=false';
+        /** @psalm-suppress ImpureFunctionCall */
         $result = json_decode(@file_get_contents($url));
 
         if ($result->status == 'OK') {
@@ -89,12 +91,16 @@ class GoogleGeocode implements GeoAdapterInterface
     public function write(GeometryInterface $geometry): string
     {
         $centroid = $geometry->getCentroid();
-        $lat = $centroid->getY();
-        $lon = $centroid->getX();
+        $lat = $centroid?->getY();
+        $lon = $centroid?->getX();
+        if ($lat === null || $lon === null) {
+            return '';
+        }
 
         $url = "http://maps.googleapis.com/maps/api/geocode/json";
         $url .= '?latlng=' . $lat . ',' . $lon;
         $url .= '&sensor=false';
+        /** @psalm-suppress ImpureFunctionCall */
         $result = json_decode(@file_get_contents($url));
 
         if ($result->status == 'OK') {

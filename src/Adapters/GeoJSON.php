@@ -20,8 +20,9 @@ use Tochka\GeoPHP\GeoPHP;
  * geometry of that feature strip everything else.
  *
  * @api
+ * @psalm-immutable
  */
-class GeoJSON implements GeoAdapterInterface
+readonly class GeoJSON implements GeoAdapterInterface
 {
     /**
      * Given an object or a string, return a Geometry

@@ -14,18 +14,19 @@ use Tochka\GeoPHP\GeoPHP;
  *
  * @api
  * @template-covariant TType of GeometryInterface
+ * @psalm-immutable
  */
-abstract class Collection extends Geometry
+abstract readonly class Collection extends Geometry
 {
     /**
      * @var list<TType>
      */
-    private array $components = [];
+    private array $components;
 
     /**
-     * @param list<TType> $components array of geometries
+     * @param list<TType> $components Array of geometries
      */
-    public function __construct(array $components = [])
+    public function __construct(array $components = [], ?\GEOSGeometry $geos = null, ?int $srid = null)
     {
         foreach ($components as $component) {
             if ($component instanceof GeometryInterface) {
@@ -34,6 +35,8 @@ abstract class Collection extends Geometry
                 throw new \RuntimeException("Cannot create a collection with non-geometries");
             }
         }
+
+        parent::__construct($geos, $srid);
     }
 
     /**
@@ -43,19 +46,6 @@ abstract class Collection extends Geometry
     public function getComponents(): array
     {
         return $this->components;
-    }
-
-    /*
-     * inverts x and y coordinates
-     * Useful for old data still using lng lat
-     */
-    public function invertxy(): void
-    {
-        foreach ($this->components as $component) {
-            if(method_exists($component, 'invertxy')) {
-                $component->invertxy();
-            }
-        }
     }
 
     /**
@@ -68,16 +58,19 @@ abstract class Collection extends Geometry
         }
 
         if ($this->getGeos()) {
+            /** @psalm-suppress ImpureMethodCall */
             $geosCentroid = $this->getGeos()->centroid();
+            /** @psalm-suppress ImpureMethodCall */
             if ($geosCentroid->typeName() === 'Point') {
-                return GeoPHP::geosToGeometry($this->getGeos()->centroid());
+                /** @var Point */
+                return GeoPHP::geosToGeometry($geosCentroid);
             }
         }
 
         // As a rough estimate, we say that the centroid of a colletion is the centroid of it's envelope
         // @@TODO: Make this the centroid of the convexHull
         // Note: Outside of polygons, geometryCollections and the trivial case of points, there is no standard on what a "centroid" is
-        return $this->envelope()->getCentroid();
+        return $this->envelope()?->getCentroid();
     }
 
     /**
@@ -90,13 +83,17 @@ abstract class Collection extends Geometry
         }
 
         if ($this->getGeos()) {
+            /** @psalm-suppress ImpureMethodCall */
             $envelope = $this->getGeos()->envelope();
+            /** @psalm-suppress ImpureMethodCall */
             if ($envelope->typeName() === 'Point') {
-                return GeoPHP::geosToGeometry($envelope)->getBBOX();
+                return GeoPHP::geosToGeometry($envelope)?->getBBOX();
             }
 
+            /** @psalm-suppress ImpureMethodCall */
             $geosRing = $envelope->exteriorRing();
 
+            /** @psalm-suppress ImpureMethodCall */
             return new BoundBox(
                 $geosRing->pointN(3)->getX(),
                 $geosRing->pointN(1)->getX(),
@@ -113,6 +110,9 @@ abstract class Collection extends Geometry
         // Go through each component and get the max and min x and y
         foreach ($this->components as $component) {
             $componentBbox = $component->getBBox();
+            if ($componentBbox === null) {
+                continue;
+            }
 
             // Do a check and replace on each boundary, slowly growing the bbox
             $maxX = max($componentBbox->maxX, $maxX);
@@ -139,6 +139,7 @@ abstract class Collection extends Geometry
     public function getArea(): float
     {
         if ($this->getGeos()) {
+            /** @psalm-suppress ImpureMethodCall */
             return $this->getGeos()->area();
         }
 
@@ -160,6 +161,7 @@ abstract class Collection extends Geometry
         }
 
         if ($this->getGeos()) {
+            /** @psalm-suppress ImpureMethodCall */
             return GeoPHP::geosToGeometry($this->getGeos()->boundary());
         }
 
@@ -260,9 +262,13 @@ abstract class Collection extends Geometry
         return $points;
     }
 
+    /**
+     * @throws \Exception
+     */
     public function equals(GeometryInterface $geometry): bool
     {
-        if ($this->getGeos()) {
+        if ($this->getGeos() && $geometry->getGeos()) {
+            /** @psalm-suppress ImpureMethodCall */
             return $this->getGeos()->equals($geometry->getGeos());
         }
 
@@ -302,6 +308,7 @@ abstract class Collection extends Geometry
     public function isSimple(): bool
     {
         if ($this->getGeos()) {
+            /** @psalm-suppress ImpureMethodCall */
             return $this->getGeos()->isSimple();
         }
 
@@ -316,16 +323,16 @@ abstract class Collection extends Geometry
     }
 
     /**
-     * @return list<GeometryInterface>|null
+     * @return list<LineString>|null
      */
     public function explode(): ?array
     {
         $parts = [];
         foreach ($this->components as $component) {
-            $parts = array_merge($parts, $component->explode());
+            $parts[] = $component->explode();
         }
 
-        return $parts;
+        return array_merge(...array_filter($parts));
     }
 
     // Not valid for this geometry type

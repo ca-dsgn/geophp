@@ -5,26 +5,26 @@ namespace Tochka\GeoPHP\Geometry;
 /**
  * Point: The most basic geometry type. All other geometries are built out of Points.
  * @api
+ * @psalm-immutable
  */
-class Point extends Geometry
+readonly class Point extends Geometry
 {
     private ?float $x;
     private ?float $y;
-    private ?float $z;
 
     /**
      * Constructor
      *
      * @param float|string|int|null $x The x coordinate (or longitude)
      * @param float|string|int|null $y The y coordinate (or latitude)
-     * @param float|string|int|null $z The z coordinate (or altitude) - optional
      */
-    public function __construct(float|string|int $x = null, float|string|int $y = null, float|string|int $z = null)
+    public function __construct(float|string|int|null $x = null, float|string|int|null $y = null, ?\GEOSGeometry $geos = null, ?int $srid = null)
     {
         // Convert to floatval in case they are passed in as a string or integer etc.
         $this->x = $x !== null ? floatval($x) : null;
         $this->y = $y !== null ? floatval($y) : null;
-        $this->z = $z !== null ? floatval($z) : null;
+
+        parent::__construct($geos, $srid);
     }
 
     public function geometryType(): string
@@ -59,46 +59,29 @@ class Point extends Geometry
      */
     public function getZ(): ?float
     {
-        return $this->z;
+        return null;
     }
 
     /**
-     * inverts x and y coordinates
-     * Useful with old applications still using lng lat
-     *
-     * @return void
+     * @return Point A point's centroid is itself
      */
-    public function invertxy(): void
-    {
-        $x = $this->x;
-        $this->x = $this->y;
-        $this->y = $x;
-    }
-
-
-    // A point's centroid is itself
     public function getCentroid(): Point
     {
         return $this;
     }
 
-    public function getBBox(): BoundBox
+    public function getBBox(): ?BoundBox
     {
-        return new BoundBox($this->getX(), $this->getX(), $this->getY(), $this->getY());
+        if ($this->x === null || $this->y === null) {
+            return null;
+        }
+
+        return new BoundBox($this->x, $this->x, $this->y, $this->y);
     }
 
     public function asArray(): array
     {
-        $result = [];
-        if ($this->x !== null && $this->y !== null) {
-            $result[] = $this->x;
-            $result[] = $this->y;
-        }
-        if ($this->z !== null) {
-            $result[] = $this->z;
-        }
-
-        return $result;
+        return [$this->x, $this->y];
     }
 
     public function getArea(): float

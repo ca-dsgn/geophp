@@ -8,27 +8,35 @@ use Tochka\GeoPHP\GeoPHP;
  * Geometry abstract class
  *
  * @api
+ * @psalm-immutable
  */
-abstract class Geometry implements GeometryInterface
+abstract readonly class Geometry implements GeometryInterface
 {
-    private \GEOSGeometry|null $geos = null;
-    private ?int $srid = null;
+    private ?\GEOSGeometry $geos;
+
+    public function __construct(
+        ?\GEOSGeometry $geos = null,
+        private ?int $srid = null,
+    ) {
+        if ($geos === null && GeoPHP::geosInstalled()) {
+            try {
+                $reader = new \GEOSWKBReader();
+                /** @psalm-suppress ImpureMethodCall */
+                $this->geos = $reader->readHEX($this->out('wkb', true));
+                if ($srid !== null) {
+                    /** @psalm-suppress ImpureMethodCall */
+                    $this->geos->setSRID($srid);
+                }
+            } catch (\Throwable) {
+            }
+        } else {
+            $this->geos = $geos;
+        }
+    }
 
     public function getSRID(): ?int
     {
         return $this->srid;
-    }
-
-    /**
-     * @throws \Exception
-     */
-    public function setSRID(int $srid): void
-    {
-        if ($this->getGeos()) {
-            $this->getGeos()->setSRID($srid);
-        }
-
-        $this->srid = $srid;
     }
 
     /**
@@ -41,10 +49,15 @@ abstract class Geometry implements GeometryInterface
         }
 
         if ($this->getGeos()) {
+            /** @psalm-suppress ImpureMethodCall */
             return GeoPHP::geosToGeometry($this->getGeos()->envelope());
         }
 
         $bbox = $this->getBBox();
+        if ($bbox === null) {
+            return new Polygon();
+        }
+
         $points = [
             new Point($bbox->maxX, $bbox->minY),
             new Point($bbox->maxX, $bbox->maxY),
@@ -72,27 +85,9 @@ abstract class Geometry implements GeometryInterface
         return $processor->write(...$args);
     }
 
-
     public function getGeos(): ?\GEOSGeometry
     {
-        // If it's already been set, just return it
-        if ($this->geos && GeoPHP::geosInstalled()) {
-            return $this->geos;
-        }
-        // It hasn't been set yet, generate it
-        if (GeoPHP::geosInstalled()) {
-
-            $reader = new \GEOSWKBReader();
-            $this->geos = $reader->readHEX($this->out('wkb', true));
-        } else {
-            $this->geos = null;
-        }
         return $this->geos;
-    }
-
-    public function setGeos(\GEOSGeometry $geos): void
-    {
-        $this->geos = $geos;
     }
 
     public function asText(): string
@@ -111,6 +106,7 @@ abstract class Geometry implements GeometryInterface
     public function pointOnSurface(): ?GeometryInterface
     {
         if ($this->getGeos()) {
+            /** @psalm-suppress ImpureMethodCall */
             return GeoPHP::geosToGeometry($this->getGeos()->pointOnSurface());
         }
 
@@ -122,7 +118,8 @@ abstract class Geometry implements GeometryInterface
      */
     public function equalsExact(Geometry $geometry): bool
     {
-        if ($this->getGeos()) {
+        if ($this->getGeos() && $geometry->getGeos()) {
+            /** @psalm-suppress ImpureMethodCall */
             return $this->getGeos()->equalsExact($geometry->getGeos());
         }
 
@@ -134,10 +131,12 @@ abstract class Geometry implements GeometryInterface
      */
     public function relate(Geometry $geometry, string $pattern = null): string|bool
     {
-        if ($this->getGeos()) {
+        if ($this->getGeos() && $geometry->getGeos()) {
             if ($pattern !== null) {
+                /** @psalm-suppress ImpureMethodCall */
                 return $this->getGeos()->relate($geometry->getGeos(), $pattern);
             } else {
+                /** @psalm-suppress ImpureMethodCall */
                 return $this->getGeos()->relate($geometry->getGeos());
             }
         }
@@ -151,6 +150,7 @@ abstract class Geometry implements GeometryInterface
     public function checkValidity(): array
     {
         if ($this->getGeos()) {
+            /** @psalm-suppress ImpureMethodCall */
             return $this->getGeos()->checkValidity();
         }
 
@@ -163,6 +163,7 @@ abstract class Geometry implements GeometryInterface
     public function buffer(float $distance): ?GeometryInterface
     {
         if ($this->getGeos()) {
+            /** @psalm-suppress ImpureMethodCall */
             return GeoPHP::geosToGeometry($this->getGeos()->buffer($distance));
         }
 
@@ -175,6 +176,7 @@ abstract class Geometry implements GeometryInterface
     public function convexHull(): ?GeometryInterface
     {
         if ($this->getGeos()) {
+            /** @psalm-suppress ImpureMethodCall */
             return GeoPHP::geosToGeometry($this->getGeos()->convexHull());
         }
 
@@ -186,7 +188,8 @@ abstract class Geometry implements GeometryInterface
      */
     public function intersection(GeometryInterface $geometry): ?GeometryInterface
     {
-        if ($this->getGeos()) {
+        if ($this->getGeos() && $geometry->getGeos()) {
+            /** @psalm-suppress ImpureMethodCall */
             return GeoPHP::geosToGeometry($this->getGeos()->intersection($geometry->getGeos()));
         }
 
@@ -198,7 +201,8 @@ abstract class Geometry implements GeometryInterface
      */
     public function difference(GeometryInterface $geometry): ?GeometryInterface
     {
-        if ($this->getGeos()) {
+        if ($this->getGeos() && $geometry->getGeos()) {
+            /** @psalm-suppress ImpureMethodCall */
             return GeoPHP::geosToGeometry($this->getGeos()->difference($geometry->getGeos()));
         }
 
@@ -210,7 +214,8 @@ abstract class Geometry implements GeometryInterface
      */
     public function symDifference(GeometryInterface $geometry): ?GeometryInterface
     {
-        if ($this->getGeos()) {
+        if ($this->getGeos() && $geometry->getGeos()) {
+            /** @psalm-suppress ImpureMethodCall */
             return GeoPHP::geosToGeometry($this->getGeos()->symDifference($geometry->getGeos()));
         }
 
@@ -228,10 +233,12 @@ abstract class Geometry implements GeometryInterface
             if (is_array($geometry)) {
                 $geom = $this->getGeos();
                 foreach ($geometry as $item) {
+                    /** @psalm-suppress ImpureMethodCall */
                     $geom = $geom->union($item->getGeos());
                 }
                 return GeoPHP::geosToGeometry($geom);
             } else {
+                /** @psalm-suppress ImpureMethodCall */
                 return GeoPHP::geosToGeometry($this->getGeos()->union($geometry->getGeos()));
             }
         }
@@ -245,6 +252,7 @@ abstract class Geometry implements GeometryInterface
     public function simplify(float $tolerance, bool $preserveTopology = false): ?GeometryInterface
     {
         if ($this->getGeos()) {
+            /** @psalm-suppress ImpureMethodCall */
             return GeoPHP::geosToGeometry($this->getGeos()->simplify($tolerance, $preserveTopology));
         }
 
@@ -256,7 +264,8 @@ abstract class Geometry implements GeometryInterface
      */
     public function disjoint(GeometryInterface $geometry): bool
     {
-        if ($this->getGeos()) {
+        if ($this->getGeos() && $geometry->getGeos()) {
+            /** @psalm-suppress ImpureMethodCall */
             return $this->getGeos()->disjoint($geometry->getGeos());
         }
 
@@ -268,7 +277,8 @@ abstract class Geometry implements GeometryInterface
      */
     public function touches(GeometryInterface $geometry): bool
     {
-        if ($this->getGeos()) {
+        if ($this->getGeos() && $geometry->getGeos()) {
+            /** @psalm-suppress ImpureMethodCall */
             return $this->getGeos()->touches($geometry->getGeos());
         }
 
@@ -280,7 +290,8 @@ abstract class Geometry implements GeometryInterface
      */
     public function intersects(GeometryInterface $geometry): bool
     {
-        if ($this->getGeos()) {
+        if ($this->getGeos() && $geometry->getGeos()) {
+            /** @psalm-suppress ImpureMethodCall */
             return $this->getGeos()->intersects($geometry->getGeos());
         }
 
@@ -292,7 +303,8 @@ abstract class Geometry implements GeometryInterface
      */
     public function crosses(GeometryInterface $geometry): bool
     {
-        if ($this->getGeos()) {
+        if ($this->getGeos() && $geometry->getGeos()) {
+            /** @psalm-suppress ImpureMethodCall */
             return $this->getGeos()->crosses($geometry->getGeos());
         }
 
@@ -304,7 +316,8 @@ abstract class Geometry implements GeometryInterface
      */
     public function within(GeometryInterface $geometry): bool
     {
-        if ($this->getGeos()) {
+        if ($this->getGeos() && $geometry->getGeos()) {
+            /** @psalm-suppress ImpureMethodCall */
             return $this->getGeos()->within($geometry->getGeos());
         }
 
@@ -316,7 +329,8 @@ abstract class Geometry implements GeometryInterface
      */
     public function contains(GeometryInterface $geometry): bool
     {
-        if ($this->getGeos()) {
+        if ($this->getGeos() && $geometry->getGeos()) {
+            /** @psalm-suppress ImpureMethodCall */
             return $this->getGeos()->contains($geometry->getGeos());
         }
 
@@ -328,7 +342,8 @@ abstract class Geometry implements GeometryInterface
      */
     public function overlaps(GeometryInterface $geometry): bool
     {
-        if ($this->getGeos()) {
+        if ($this->getGeos() && $geometry->getGeos()) {
+            /** @psalm-suppress ImpureMethodCall */
             return $this->getGeos()->overlaps($geometry->getGeos());
         }
 
@@ -340,7 +355,8 @@ abstract class Geometry implements GeometryInterface
      */
     public function covers(GeometryInterface $geometry): bool
     {
-        if ($this->getGeos()) {
+        if ($this->getGeos() && $geometry->getGeos()) {
+            /** @psalm-suppress ImpureMethodCall */
             return $this->getGeos()->covers($geometry->getGeos());
         }
 
@@ -352,7 +368,8 @@ abstract class Geometry implements GeometryInterface
      */
     public function coveredBy(GeometryInterface $geometry): bool
     {
-        if ($this->getGeos()) {
+        if ($this->getGeos() && $geometry->getGeos()) {
+            /** @psalm-suppress ImpureMethodCall */
             return $this->getGeos()->coveredBy($geometry->getGeos());
         }
 
@@ -364,7 +381,8 @@ abstract class Geometry implements GeometryInterface
      */
     public function distance(GeometryInterface $geometry): float
     {
-        if ($this->getGeos()) {
+        if ($this->getGeos() && $geometry->getGeos()) {
+            /** @psalm-suppress ImpureMethodCall */
             return $this->getGeos()->distance($geometry->getGeos());
         }
 
@@ -376,7 +394,8 @@ abstract class Geometry implements GeometryInterface
      */
     public function hausdorffDistance(GeometryInterface $geometry): float
     {
-        if ($this->getGeos()) {
+        if ($this->getGeos() && $geometry->getGeos()) {
+            /** @psalm-suppress ImpureMethodCall */
             return $this->getGeos()->hausdorffDistance($geometry->getGeos());
         }
 
@@ -388,7 +407,8 @@ abstract class Geometry implements GeometryInterface
      */
     public function project(GeometryInterface $point): ?GeometryInterface
     {
-        if ($this->getGeos()) {
+        if ($this->getGeos() && $point->getGeos()) {
+            /** @psalm-suppress ImpureMethodCall */
             return GeoPHP::geosToGeometry($this->getGeos()->project($point->getGeos()));
         }
 

@@ -8,8 +8,9 @@ use Tochka\GeoPHP\Geometry\GeometryInterface;
  * EWKT (Extended Well Known Text) Adapter
  *
  * @api
+ * @psalm-immutable
  */
-class EWKT extends WKT
+readonly class EWKT extends WKT
 {
     /**
      * Serialize geometries into an EWKT string.

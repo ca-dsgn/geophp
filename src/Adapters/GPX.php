@@ -17,8 +17,9 @@ use Tochka\GeoPHP\GeoPHP;
  * PHP Geometry/GPX encoder/decoder
  *
  * @api
+ * @psalm-immutable
  */
-class GPX implements GeoAdapterInterface
+readonly class GPX implements GeoAdapterInterface
 {
     /**
      * Read GPX string into geometry objects
@@ -57,6 +58,7 @@ class GPX implements GeoAdapterInterface
 
         // Load into DOMDocument
         $xml = new \DOMDocument();
+        /** @psalm-suppress ImpureMethodCall */
         if (@$xml->loadXML($text) === false) {
             throw new \RuntimeException("Invalid GPX: " . $text);
         }
@@ -78,15 +80,17 @@ class GPX implements GeoAdapterInterface
         return GeoPHP::geometryReduce($geometries);
     }
 
-    private function childElements(\DOMElement $xml, string $nodeName = ''): array
+    private function childElements(\DOMElement $xml, string $nodeName): array
     {
-        $children = [];
-        foreach ($xml->childNodes as $child) {
+        $result = [];
+        /** @psalm-suppress ImpureMethodCall */
+        $children = $xml->childNodes->getIterator();
+        foreach ($children as $child) {
             if ($child->nodeName == $nodeName) {
-                $children[] = $child;
+                $result[] = $child;
             }
         }
-        return $children;
+        return $result;
     }
 
     /**
@@ -95,10 +99,15 @@ class GPX implements GeoAdapterInterface
     private function parseWaypoints(\DOMDocument $document): array
     {
         $points = [];
+        /** @psalm-suppress ImpureMethodCall */
         $wptElements = $document->getElementsByTagName('wpt');
-        foreach ($wptElements as $wpt) {
-            $lat = $wpt->attributes->getNamedItem("lat")->nodeValue;
-            $lon = $wpt->attributes->getNamedItem("lon")->nodeValue;
+        /** @psalm-suppress ImpureMethodCall */
+        $wptElementsIterator = $wptElements->getIterator();
+        foreach ($wptElementsIterator as $wpt) {
+            /** @psalm-suppress ImpureMethodCall */
+            $lat = $wpt->attributes->getNamedItem('lat')?->nodeValue;
+            /** @psalm-suppress ImpureMethodCall */
+            $lon = $wpt->attributes->getNamedItem('lon')?->nodeValue;
             $points[] = new Point($lon, $lat);
         }
         return $points;
@@ -110,13 +119,16 @@ class GPX implements GeoAdapterInterface
     private function parseTracks(\DOMDocument $document): array
     {
         $lines = [];
+        /** @psalm-suppress ImpureMethodCall */
         $trkElements = $document->getElementsByTagName('trk');
-        foreach ($trkElements as $trk) {
+        /** @psalm-suppress ImpureMethodCall */
+        $trkElementsIterator = $trkElements->getIterator();
+        foreach ($trkElementsIterator as $trk) {
             $components = [];
             foreach ($this->childElements($trk, 'trkseg') as $trkseg) {
                 foreach ($this->childElements($trkseg, 'trkpt') as $trkpt) {
-                    $lat = $trkpt->attributes->getNamedItem("lat")->nodeValue;
-                    $lon = $trkpt->attributes->getNamedItem("lon")->nodeValue;
+                    $lat = $trkpt->attributes->getNamedItem('lat')->nodeValue;
+                    $lon = $trkpt->attributes->getNamedItem('lon')->nodeValue;
                     $components[] = new Point($lon, $lat);
                 }
             }
@@ -133,12 +145,15 @@ class GPX implements GeoAdapterInterface
     private function parseRoutes(\DOMDocument $document): array
     {
         $lines = [];
+        /** @psalm-suppress ImpureMethodCall */
         $rteElements = $document->getElementsByTagName('rte');
-        foreach ($rteElements as $rte) {
+        /** @psalm-suppress ImpureMethodCall */
+        $rteElementsIterator = $rteElements->getIterator();
+        foreach ($rteElementsIterator as $rte) {
             $components = [];
             foreach ($this->childElements($rte, 'rtept') as $rtept) {
-                $lat = $rtept->attributes->getNamedItem("lat")->nodeValue;
-                $lon = $rtept->attributes->getNamedItem("lon")->nodeValue;
+                $lat = $rtept->attributes->getNamedItem('lat')->nodeValue;
+                $lon = $rtept->attributes->getNamedItem('lon')->nodeValue;
                 $components[] = new Point($lon, $lat);
             }
 

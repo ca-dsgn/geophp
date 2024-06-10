@@ -20,8 +20,9 @@ use Tochka\GeoPHP\GeoPHP;
  *   Openlayers/format/WKT.js
  *
  * @api
+ * @psalm-immutable
  */
-class KML implements GeoAdapterInterface
+readonly class KML implements GeoAdapterInterface
 {
     /**
      * Read KML string into geometry objects
@@ -36,6 +37,7 @@ class KML implements GeoAdapterInterface
 
         // Load into DOMDocument
         $xml = new \DOMDocument();
+        /** @psalm-suppress ImpureMethodCall */
         if (@$xml->loadXML($text) === false) {
             throw new \RuntimeException("Invalid KML: " . $text);
         }
@@ -60,10 +62,15 @@ class KML implements GeoAdapterInterface
     {
         $geometries = [];
 
+        /** @psalm-suppress ImpureMethodCall */
         $placemarkElements = $document->getElementsByTagName('placemark');
         if ($placemarkElements->length) {
-            foreach ($placemarkElements as $placemark) {
-                foreach ($placemark->childNodes as $child) {
+            /** @psalm-suppress ImpureMethodCall */
+            $placemarkElementsIterator = $placemarkElements->getIterator();
+            foreach ($placemarkElementsIterator as $placemark) {
+                /** @psalm-suppress ImpureMethodCall */
+                $children = $placemark->childNodes->getIterator();
+                foreach ($children as $child) {
                     $geometry = $this->parseNode($child);
                     if ($geometry !== null) {
                         $geometries[] = $geometry;
@@ -80,7 +87,7 @@ class KML implements GeoAdapterInterface
         return GeoPHP::geometryReduce($geometries);
     }
 
-    private function parseNode(\DOMElement $element): ?GeometryInterface
+    private function parseNode(\DOMNode $element): ?GeometryInterface
     {
         $geometryTypes = GeoPHP::geometryList();
 
@@ -103,22 +110,22 @@ class KML implements GeoAdapterInterface
     }
 
     /**
-     * @param \DOMElement $xml
-     * @param string $nodeName
-     * @return array<\DOMElement>
+     * @return list<\DOMNode>
      */
-    private function childElements(\DOMElement $xml, string $nodeName = ''): array
+    private function childElements(\DOMNode $xml, string $nodeName = ''): array
     {
-        $children = [];
-        foreach ($xml->childNodes as $child) {
+        $elements = [];
+        /** @psalm-suppress ImpureMethodCall */
+        $children = $xml->childNodes->getIterator();
+        foreach ($children as $child) {
             if ($child->nodeName === $nodeName) {
-                $children[] = $child;
+                $elements[] = $child;
             }
         }
-        return $children;
+        return $elements;
     }
 
-    private function parsePoint(\DOMElement $xml): Point
+    private function parsePoint(\DOMNode $xml): Point
     {
         $coordinates = $this->extractCoordinates($xml);
         if (!empty($coordinates)) {
@@ -128,7 +135,7 @@ class KML implements GeoAdapterInterface
         }
     }
 
-    private function parseLineString(\DOMElement $xml): LineString
+    private function parseLineString(\DOMNode $xml): LineString
     {
         $coordinates = $this->extractCoordinates($xml);
         $point_array = [];
@@ -138,7 +145,7 @@ class KML implements GeoAdapterInterface
         return new LineString($point_array);
     }
 
-    private function parsePolygon(\DOMElement $xml): Polygon
+    private function parsePolygon(\DOMNode $xml): Polygon
     {
         $components = [];
 
@@ -167,14 +174,16 @@ class KML implements GeoAdapterInterface
         return new Polygon($components);
     }
 
-    private function parseGeometryCollection(\DOMElement $xml): GeometryCollection
+    private function parseGeometryCollection(\DOMNode $xml): GeometryCollection
     {
         $components = [];
-        $geom_types = GeoPHP::geometryList();
-        foreach ($xml->childNodes as $child) {
+        $geomTypes = GeoPHP::geometryList();
+        /** @psalm-suppress ImpureMethodCall */
+        $children = $xml->childNodes->getIterator();
+        foreach ($children as $child) {
             $nodeName = ($child->nodeName == 'linearring') ? 'linestring' : $child->nodeName;
-            if (array_key_exists($nodeName, $geom_types)) {
-                $function = 'parse' . $geom_types[$nodeName];
+            if (array_key_exists($nodeName, $geomTypes)) {
+                $function = 'parse' . $geomTypes[$nodeName];
                 $components[] = $this->$function($child);
             }
         }
@@ -184,12 +193,12 @@ class KML implements GeoAdapterInterface
     /**
      * @psalm-return list<list{string, string, ...string}>
      */
-    private function extractCoordinates(\DOMElement $xml): array
+    private function extractCoordinates(\DOMNode $xml): array
     {
         $coordinateElements = $this->childElements($xml, 'coordinates');
         $coordinates = [];
         if (count($coordinateElements)) {
-            $coordinateSets = explode(' ', preg_replace('/[\r\n]+/', ' ', $coordinateElements[0]->nodeValue));
+            $coordinateSets = explode(' ', preg_replace('/[\r\n]+/', ' ', $coordinateElements[0]->nodeValue ?? ''));
             foreach ($coordinateSets as $set) {
                 $set = trim($set);
                 if ($set) {

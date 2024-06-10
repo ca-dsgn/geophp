@@ -7,8 +7,9 @@ namespace Tochka\GeoPHP\Geometry;
  * A line can have more than one segment.
  * @api
  * @extends Collection<Point>
+ * @psalm-immutable
  */
-class LineString extends Collection
+readonly class LineString extends Collection
 {
     /**
      * Constructor
@@ -16,17 +17,19 @@ class LineString extends Collection
      * @param list<Point> $points An array of at least two points with
      * which to build the LineString
      */
-    public function __construct(array $points = [])
+    public function __construct(array $points = [], ?\GEOSGeometry $geos = null, ?int $srid = null)
     {
-        if (count($points) == 1) {
+        if (count($points) === 1) {
             throw new \RuntimeException("Cannot construct a LineString with a single point");
         }
 
         // Call the Collection constructor to build the LineString
-        parent::__construct($points);
+        parent::__construct($points, $geos, $srid);
     }
 
-    // The boundary of a linestring is itself
+    /**
+     * The boundary of a linestring is itself
+     */
     public function boundary(): GeometryInterface
     {
         return $this;
@@ -44,12 +47,16 @@ class LineString extends Collection
 
     public function isClosed(): bool
     {
-        return ($this->startPoint()->equals($this->endPoint()));
+        if ($this->startPoint() === null || $this->endPoint() === null) {
+            return false;
+        }
+
+        return $this->startPoint()->equals($this->endPoint());
     }
 
     public function isRing(): bool
     {
-        return ($this->isClosed() && $this->isSimple());
+        return $this->isClosed() && $this->isSimple();
     }
 
     public function numPoints(): int
@@ -75,9 +82,14 @@ class LineString extends Collection
         return 0;
     }
 
+    /**
+     * @throws \Exception
+     * @psalm-mutation-free
+     */
     public function length(): float
     {
         if ($this->getGeos()) {
+            /** @psalm-suppress ImpureMethodCall */
             return $this->getGeos()->length();
         }
 
@@ -97,15 +109,22 @@ class LineString extends Collection
         $points = $this->getPoints();
         for($i = 0; $i < $this->numPoints() - 1; $i++) {
             $point = $points[$i];
-            $next_point = $points[$i + 1];
-            if (!is_object($next_point)) {
+            $nextPoint = $points[$i + 1];
+
+            if (
+                $point->getX() === null
+                || $point->getY() === null
+                || $nextPoint->getX() === null
+                || $nextPoint->getY() === null
+            ) {
                 continue;
             }
+
             // Great circle method
             $lat1 = deg2rad($point->getY());
-            $lat2 = deg2rad($next_point->getY());
+            $lat2 = deg2rad($nextPoint->getY());
             $lon1 = deg2rad($point->getX());
-            $lon2 = deg2rad($next_point->getX());
+            $lon2 = deg2rad($nextPoint->getX());
             $dlon = $lon2 - $lon1;
             $length +=
               $radius *
@@ -128,19 +147,27 @@ class LineString extends Collection
         $points = $this->getPoints();
         for($i = 0; $i < $this->numPoints() - 1; $i++) {
             $point = $points[$i];
-            $next_point = $points[$i + 1];
-            if (!is_object($next_point)) {
+            $nextPoint = $points[$i + 1];
+
+            if (
+                $point->getX() === null
+                || $point->getY() === null
+                || $nextPoint->getX() === null
+                || $nextPoint->getY() === null
+            ) {
                 continue;
             }
+
             $degree = rad2deg(
                 acos(
-                    sin(deg2rad($point->getY())) * sin(deg2rad($next_point->getY())) +
-                    cos(deg2rad($point->getY())) * cos(deg2rad($next_point->getY())) *
-                      cos(deg2rad(abs($point->getX() - $next_point->getX()))),
+                    sin(deg2rad($point->getY())) * sin(deg2rad($nextPoint->getY())) +
+                    cos(deg2rad($point->getY())) * cos(deg2rad($nextPoint->getY())) *
+                    cos(deg2rad(abs($point->getX() - $nextPoint->getX()))),
                 ),
             );
             $degrees += $degree;
         }
+
         // Returns degrees
         return $degrees;
     }
@@ -164,6 +191,7 @@ class LineString extends Collection
     public function isSimple(): bool
     {
         if ($this->getGeos()) {
+            /** @psalm-suppress ImpureMethodCall */
             return $this->getGeos()->isSimple();
         }
 
@@ -187,6 +215,15 @@ class LineString extends Collection
      */
     public function lineSegmentIntersect(LineString $segment): bool
     {
+        if (
+            $this->startPoint() === null
+            || $this->endPoint() === null
+            || $segment->startPoint() === null
+            || $segment->endPoint() === null
+        ) {
+            return false;
+        }
+
         $p0_x = $this->startPoint()->getX();
         $p0_y = $this->startPoint()->getY();
         $p1_x = $this->endPoint()->getX();

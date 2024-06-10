@@ -11,8 +11,9 @@ use Tochka\GeoPHP\Geometry\Polygon;
  * PHP Geometry GeoHash encoder/decoder.
  *
  * @api
+ * @psalm-immutable
  */
-class GeoHash implements GeoAdapterInterface
+readonly class GeoHash implements GeoAdapterInterface
 {
     /**
      * base32 encoding character map.
@@ -24,11 +25,11 @@ class GeoHash implements GeoAdapterInterface
      * @param string $input a geohash
      * @return GeometryInterface the converted geohash
      */
-    public function read(string $input, $as_grid = false): GeometryInterface
+    public function read(string $input, bool $asGrid = false): GeometryInterface
     {
         $ll = $this->decode($input);
 
-        if (!$as_grid) {
+        if (!$asGrid) {
             return new Point($ll['medlon'], $ll['medlat']);
         } else {
             return new Polygon([
@@ -61,25 +62,32 @@ class GeoHash implements GeoAdapterInterface
 
         // The geohash is the hash grid ID that fits the envelope
         $envelope = $geometry->envelope();
-        $geohashes = [];
-        $geohash = '';
+        if ($envelope === null) {
+            return '';
+        }
+        $geoHashes = [];
+        $geoHash = '';
         foreach ($envelope->getPoints() as $point) {
-            $geohashes[] = $this->encodePoint($point, 0.0000001);
+            $geoHashes[] = $this->encodePoint($point, 0.0000001);
+        }
+
+        if ($geoHashes === []) {
+            return '';
         }
 
         $i = 0;
-        while ($i < strlen($geohashes[0])) {
-            $char = $geohashes[0][$i];
-            foreach ($geohashes as $hash) {
+        while ($i < strlen($geoHashes[0])) {
+            $char = $geoHashes[0][$i];
+            foreach ($geoHashes as $hash) {
                 if ($hash[$i] != $char) {
-                    return $geohash;
+                    return $geoHash;
                 }
             }
-            $geohash .= $char;
+            $geoHash .= $char;
             $i++;
         }
 
-        return $geohash;
+        return $geoHash;
     }
 
     /**
@@ -92,15 +100,21 @@ class GeoHash implements GeoAdapterInterface
     private function encodePoint(Point $point, ?float $precision = null): string
     {
         if ($precision === null) {
-            $lap = strlen((string) $point->getY()) - strpos((string) $point->getY(), '.');
-            $lop = strlen((string) $point->getX()) - strpos((string) $point->getX(), '.');
-            $precision = pow(10, -max($lap - 1, $lop - 1, 0)) / 2;
+            if ($point->getX() === null || $point->getY() === null) {
+                $precision = 0.0000001;
+            } else {
+                $pointLap = strpos((string) $point->getY(), '.');
+                $pointLon = strpos((string) $point->getX(), '.');
+                $lap = strlen((string) $point->getY()) - ($pointLap !== false ? $pointLap : 0);
+                $lon = strlen((string) $point->getX()) - ($pointLon !== false ? $pointLon : 0);
+                $precision = pow(10, -max($lap - 1, $lon - 1, 0)) / 2;
+            }
         }
 
-        $minlat = -90;
-        $maxlat = 90;
-        $minlon = -180;
-        $maxlon = 180;
+        $minLat = -90;
+        $maxLat = 90;
+        $minLon = -180;
+        $maxLon = 180;
         $latE = 90;
         $lonE = 180;
         $i = 0;
@@ -111,22 +125,22 @@ class GeoHash implements GeoAdapterInterface
             for ($b = 4; $b >= 0; --$b) {
                 if ((1 & $b) == (1 & $i)) {
                     // even char, even bit OR odd char, odd bit...a lon
-                    $next = ($minlon + $maxlon) / 2;
+                    $next = ($minLon + $maxLon) / 2;
                     if ($point->getX() > $next) {
                         $chr |= pow(2, $b);
-                        $minlon = $next;
+                        $minLon = $next;
                     } else {
-                        $maxlon = $next;
+                        $maxLon = $next;
                     }
                     $lonE /= 2;
                 } else {
                     // odd char, even bit OR even char, odd bit...a lat
-                    $next = ($minlat + $maxlat) / 2;
+                    $next = ($minLat + $maxLat) / 2;
                     if ($point->getY() > $next) {
                         $chr |= pow(2, $b);
-                        $minlat = $next;
+                        $minLat = $next;
                     } else {
-                        $maxlat = $next;
+                        $maxLat = $next;
                     }
                     $latE /= 2;
                 }
@@ -140,84 +154,90 @@ class GeoHash implements GeoAdapterInterface
 
     /**
      * @param string $hash a geohash
+     * @return array{minlat: float, minlon: float, maxlat: float, maxlon: float, medlat: float, medlon: float}
      * @author algorithm based on code by Alexander Songe <a@songe.me>
      * @see https://github.com/asonge/php-geohash/issues/1
      */
     private function decode(string $hash): array
     {
-        $ll = [];
-        $minlat = -90;
-        $maxlat = 90;
-        $minlon = -180;
-        $maxlon = 180;
+        $result = [];
+        $minLat = -90;
+        $maxLat = 90;
+        $minLon = -180;
+        $maxLon = 180;
         $latE = 90;
         $lonE = 180;
         for ($i = 0, $c = strlen($hash); $i < $c; $i++) {
             $v = strpos(self::TABLE, $hash[$i]);
+            if ($v === false) {
+                continue;
+            }
+
             if (1 & $i) {
                 if (16 & $v) {
-                    $minlat = ($minlat + $maxlat) / 2;
+                    $minLat = ($minLat + $maxLat) / 2;
                 } else {
-                    $maxlat = ($minlat + $maxlat) / 2;
+                    $maxLat = ($minLat + $maxLat) / 2;
                 }
                 if (8 & $v) {
-                    $minlon = ($minlon + $maxlon) / 2;
+                    $minLon = ($minLon + $maxLon) / 2;
                 } else {
-                    $maxlon = ($minlon + $maxlon) / 2;
+                    $maxLon = ($minLon + $maxLon) / 2;
                 }
                 if (4 & $v) {
-                    $minlat = ($minlat + $maxlat) / 2;
+                    $minLat = ($minLat + $maxLat) / 2;
                 } else {
-                    $maxlat = ($minlat + $maxlat) / 2;
+                    $maxLat = ($minLat + $maxLat) / 2;
                 }
                 if (2 & $v) {
-                    $minlon = ($minlon + $maxlon) / 2;
+                    $minLon = ($minLon + $maxLon) / 2;
                 } else {
-                    $maxlon = ($minlon + $maxlon) / 2;
+                    $maxLon = ($minLon + $maxLon) / 2;
                 }
                 if (1 & $v) {
-                    $minlat = ($minlat + $maxlat) / 2;
+                    $minLat = ($minLat + $maxLat) / 2;
                 } else {
-                    $maxlat = ($minlat + $maxlat) / 2;
+                    $maxLat = ($minLat + $maxLat) / 2;
                 }
                 $latE /= 8;
                 $lonE /= 4;
             } else {
                 if (16 & $v) {
-                    $minlon = ($minlon + $maxlon) / 2;
+                    $minLon = ($minLon + $maxLon) / 2;
                 } else {
-                    $maxlon = ($minlon + $maxlon) / 2;
+                    $maxLon = ($minLon + $maxLon) / 2;
                 }
                 if (8 & $v) {
-                    $minlat = ($minlat + $maxlat) / 2;
+                    $minLat = ($minLat + $maxLat) / 2;
                 } else {
-                    $maxlat = ($minlat + $maxlat) / 2;
+                    $maxLat = ($minLat + $maxLat) / 2;
                 }
                 if (4 & $v) {
-                    $minlon = ($minlon + $maxlon) / 2;
+                    $minLon = ($minLon + $maxLon) / 2;
                 } else {
-                    $maxlon = ($minlon + $maxlon) / 2;
+                    $maxLon = ($minLon + $maxLon) / 2;
                 }
                 if (2 & $v) {
-                    $minlat = ($minlat + $maxlat) / 2;
+                    $minLat = ($minLat + $maxLat) / 2;
                 } else {
-                    $maxlat = ($minlat + $maxlat) / 2;
+                    $maxLat = ($minLat + $maxLat) / 2;
                 }
                 if (1 & $v) {
-                    $minlon = ($minlon + $maxlon) / 2;
+                    $minLon = ($minLon + $maxLon) / 2;
                 } else {
-                    $maxlon = ($minlon + $maxlon) / 2;
+                    $maxLon = ($minLon + $maxLon) / 2;
                 }
                 $latE /= 4;
                 $lonE /= 8;
             }
         }
-        $ll['minlat'] = $minlat;
-        $ll['minlon'] = $minlon;
-        $ll['maxlat'] = $maxlat;
-        $ll['maxlon'] = $maxlon;
-        $ll['medlat'] = round(($minlat + $maxlat) / 2, (int) max(1, -round(log10($latE))) - 1);
-        $ll['medlon'] = round(($minlon + $maxlon) / 2, (int) max(1, -round(log10($lonE))) - 1);
-        return $ll;
+        $result['minlat'] = $minLat;
+        $result['minlon'] = $minLon;
+        $result['maxlat'] = $maxLat;
+        $result['maxlon'] = $maxLon;
+        $result['medlat'] = round(($minLat + $maxLat) / 2, (int) max(1, -round(log10($latE))) - 1);
+        $result['medlon'] = round(($minLon + $maxLon) / 2, (int) max(1, -round(log10($lonE))) - 1);
+
+        return $result;
     }
 }

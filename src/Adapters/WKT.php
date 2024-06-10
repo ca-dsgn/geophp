@@ -16,8 +16,9 @@ use Tochka\GeoPHP\GeoPHP;
  * WKT (Well Known Text) Adapter
  *
  * @api
+ * @psalm-immutable
  */
-class WKT implements GeoAdapterInterface
+readonly class WKT implements GeoAdapterInterface
 {
     /**
      * Read WKT string into geometry objects
@@ -41,13 +42,10 @@ class WKT implements GeoAdapterInterface
         // If geos is installed, then we take a shortcut and let it parse the WKT
         if (GeoPHP::geosInstalled()) {
             $reader = new \GEOSWKTReader();
-
-            $geometry = GeoPHP::geosToGeometry($reader->read($input));
+            /** @psalm-suppress ImpureMethodCall */
+            $geometry = GeoPHP::geosToGeometry($reader->read($input), $srid);
             if ($geometry === null) {
                 throw new \RuntimeException('Error while read WKT');
-            }
-            if ($srid) {
-                $geometry->setSRID($srid);
             }
 
             return $geometry;
@@ -56,52 +54,51 @@ class WKT implements GeoAdapterInterface
 
         // For each geometry type, check to see if we have a match at the
         // beginning of the string. If we do, then parse using that type
-        foreach (GeoPHP::geometryList() as $geometryType) {
+        foreach (GeoPHP::geometryList() as $geometryType => $geometryClass) {
             $wktGeometry = strtoupper($geometryType);
             if (strtoupper(substr($input, 0, strlen($wktGeometry))) === $wktGeometry) {
-                $data = $this->getDataString($input);
-
-                $geometry = match ($geometryType) {
-                    Point::class => $this->parsePoint($data),
-                    LineString::class => $this->parseLineString($data),
-                    Polygon::class => $this->parsePolygon($data),
-                    MultiPoint::class => $this->parseMultiPoint($data),
-                    MultiLineString::class => $this->parseMultiLineString($data),
-                    MultiPolygon::class => $this->parseMultiPolygon($data),
-                    GeometryCollection::class => $this->parseGeometryCollection($data),
-                };
-
-                if ($srid) {
-                    $geometry->setSRID($srid);
-                }
-
-                return $geometry;
+                continue;
             }
+
+            $data = $this->getDataString($input);
+            if ($data === false) {
+                throw new \RuntimeException('Error while read WKT');
+            }
+
+            return match ($geometryClass) {
+                Point::class => $this->parsePoint($data, $srid),
+                LineString::class => $this->parseLineString($data, $srid),
+                Polygon::class => $this->parsePolygon($data, $srid),
+                MultiPoint::class => $this->parseMultiPoint($data, $srid),
+                MultiLineString::class => $this->parseMultiLineString($data, $srid),
+                MultiPolygon::class => $this->parseMultiPolygon($data, $srid),
+                GeometryCollection::class => $this->parseGeometryCollection($data, $srid),
+            };
         }
 
         throw new \RuntimeException('Error while reading input');
     }
 
-    private function parsePoint(string $data): Point
+    private function parsePoint(string $data, ?int $srid = null): Point
     {
         $data = $this->trimParens($data);
 
         // If it's marked as empty, then return an empty point
         if ($data == 'EMPTY') {
-            return new Point();
+            return new Point(srid: $srid);
         }
 
         $parts = explode(' ', $data);
-        return new Point($parts[0], $parts[1]);
+        return new Point($parts[0], $parts[1], srid: $srid);
     }
 
-    private function parseLineString(string $data): LineString
+    private function parseLineString(string $data, ?int $srid = null): LineString
     {
         $data = $this->trimParens($data);
 
         // If it's marked as empty, then return an empty line
         if ($data == 'EMPTY') {
-            return new LineString();
+            return new LineString(srid: $srid);
         }
 
         $parts = explode(',', $data);
@@ -109,10 +106,10 @@ class WKT implements GeoAdapterInterface
         foreach ($parts as $part) {
             $points[] = $this->parsePoint($part);
         }
-        return new LineString($points);
+        return new LineString($points, srid: $srid);
     }
 
-    private function parsePolygon(string $data): Polygon
+    private function parsePolygon(string $data, ?int $srid = null): Polygon
     {
         $data = $this->trimParens($data);
 
@@ -132,10 +129,10 @@ class WKT implements GeoAdapterInterface
             }
             $lines[] = $this->parseLineString($part);
         }
-        return new Polygon($lines);
+        return new Polygon($lines, srid: $srid);
     }
 
-    private function parseMultiPoint(string $data): MultiPoint
+    private function parseMultiPoint(string $data, ?int $srid = null): MultiPoint
     {
         $data = $this->trimParens($data);
 
@@ -149,10 +146,10 @@ class WKT implements GeoAdapterInterface
         foreach ($parts as $part) {
             $points[] = $this->parsePoint($part);
         }
-        return new MultiPoint($points);
+        return new MultiPoint($points, srid: $srid);
     }
 
-    private function parseMultiLineString(string $data): MultiLineString
+    private function parseMultiLineString(string $data, ?int $srid = null): MultiLineString
     {
         $data = $this->trimParens($data);
 
@@ -173,10 +170,10 @@ class WKT implements GeoAdapterInterface
             }
             $lines[] = $this->parseLineString($part);
         }
-        return new MultiLineString($lines);
+        return new MultiLineString($lines, srid: $srid);
     }
 
-    private function parseMultiPolygon(string $data): MultiPolygon
+    private function parseMultiPolygon(string $data, ?int $srid = null): MultiPolygon
     {
         $data = $this->trimParens($data);
 
@@ -197,13 +194,13 @@ class WKT implements GeoAdapterInterface
             }
             $polys[] = $this->parsePolygon($part);
         }
-        return new MultiPolygon($polys);
+        return new MultiPolygon($polys, srid: $srid);
     }
 
     /**
      * @throws \Exception
      */
-    private function parseGeometryCollection(string $data): GeometryCollection
+    private function parseGeometryCollection(string $data, ?int $srid = null): GeometryCollection
     {
         $data = $this->trimParens($data);
 
@@ -219,7 +216,7 @@ class WKT implements GeoAdapterInterface
         foreach ($components as $component) {
             $geometries[] = $this->read($component);
         }
-        return new GeometryCollection($geometries);
+        return new GeometryCollection($geometries, srid: $srid);
     }
 
     protected function getDataString(string $wkt): string|false
@@ -262,9 +259,11 @@ class WKT implements GeoAdapterInterface
     public function write(GeometryInterface $geometry): string
     {
         // If geos is installed, then we take a shortcut and let it write the WKT
-        if (GeoPHP::geosInstalled()) {
+        if ($geometry->getGeos()) {
             $writer = new \GEOSWKTWriter();
+            /** @psalm-suppress ImpureMethodCall */
             $writer->setTrim(true);
+            /** @psalm-suppress ImpureMethodCall */
             return $writer->write($geometry->getGeos());
         }
 

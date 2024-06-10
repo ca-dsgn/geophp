@@ -24,6 +24,7 @@ use Tochka\GeoPHP\Geometry\Polygon;
 
 /**
  * @api
+ * @psalm-immutable
  */
 class GeoPHP
 {
@@ -32,8 +33,12 @@ class GeoPHP
         return '1.2';
     }
 
-    // geoPHP::load($data, $type, $other_args);
-    // if $data is an array, all passed in values will be combined into a single geometry
+    /**
+     * GeoPHP::load($data, $type, $other_args);
+     * if $data is an array, all passed in values will be combined into a single geometry
+     *
+     * @psalm-mutation-free
+     */
     public static function load(mixed $data, string $type = null, mixed ...$args): ?GeometryInterface
     {
         $typeMap = self::getAdapterMap();
@@ -78,6 +83,7 @@ class GeoPHP
 
     /**
      * @return array<string, class-string<GeoAdapterInterface>>
+     * @psalm-mutation-free
      */
     public static function getAdapterMap(): array
     {
@@ -98,6 +104,7 @@ class GeoPHP
 
     /**
      * @return array<string, class-string<GeometryInterface>>
+     * @psalm-mutation-free
      */
     public static function geometryList(): array
     {
@@ -112,36 +119,30 @@ class GeoPHP
         ];
     }
 
-    public static function geosInstalled(bool $force = null): bool
+    /**
+     * @psalm-mutation-free
+     */
+    public static function geosInstalled(bool $force = false): bool
     {
-        static $geosInstalled = null;
-        if ($force !== null) {
-            $geosInstalled = $force;
-        }
-        if ($geosInstalled !== null) {
-            return $geosInstalled;
-        }
-        $geosInstalled = class_exists('geos');
-        return $geosInstalled;
+        /** @psalm-suppress ImpureFunctionCall */
+        return $force || class_exists('geos', false);
     }
 
     /**
      * @throws \Exception
+     * @psalm-mutation-free
      */
-    public static function geosToGeometry(\GEOSGeometry $geos): ?GeometryInterface
+    public static function geosToGeometry(?\GEOSGeometry $geos, ?int $srid = null): ?GeometryInterface
     {
-        if (!self::geosInstalled()) {
+        if ($geos === null || !self::geosInstalled()) {
             return null;
         }
-        $wkbWriter = new \GEOSWKBWriter();
-        $wkb = $wkbWriter->writeHEX($geos);
-        $geometry = self::load($wkb, 'wkb', true);
-        if ($geometry) {
-            $geometry->setGeos($geos);
-            return $geometry;
-        }
 
-        return null;
+        $wkbWriter = new \GEOSWKBWriter();
+        /** @psalm-suppress ImpureMethodCall */
+        $wkb = $wkbWriter->writeHEX($geos);
+        $wkbAdapter = new WKB();
+        return $wkbAdapter->read($wkb, true, $geos, $srid);
     }
 
     /**
@@ -151,6 +152,7 @@ class GeoPHP
      * An array of geometries can be passed and they will be compiled into a single geometry
      *
      * @param array<GeometryInterface>|GeometryInterface $geometry
+     * @psalm-mutation-free
      */
     public static function geometryReduce(array|GeometryInterface $geometry): ?GeometryInterface
     {
@@ -230,6 +232,7 @@ class GeoPHP
     /**
      * @param class-string<GeometryInterface> $geometryType
      * @return class-string<GeometryInterface>|null
+     * @psalm-mutation-free
      */
     private static function getMultiGeometryClassName(string $geometryType): ?string
     {
@@ -241,14 +244,21 @@ class GeoPHP
         };
     }
 
-    // Detect a format given a value. This function is meant to be SPEEDY.
-    // It could make a mistake in XML detection if you are mixing or using namespaces in weird ways (ie, KML inside an RSS feed)
+    /**
+     * Detect a format given a value. This function is meant to be SPEEDY.
+     * It could make a mistake in XML detection if you are mixing or using namespaces in weird ways (ie, KML inside an RSS feed)
+     * @psalm-mutation-free
+     */
     public static function detectFormat(string $input): string|false
     {
+        /** @psalm-suppress ImpureFunctionCall */
         $mem = fopen('php://memory', 'r+');
+        /** @psalm-suppress ImpureFunctionCall */
         fwrite($mem, $input, 11); // Write 11 bytes - we can detect the vast majority of formats in the first 11 bytes
+        /** @psalm-suppress ImpureFunctionCall */
         fseek($mem, 0);
 
+        /** @psalm-suppress ImpureFunctionCall */
         $bytes = unpack("c*", fread($mem, 11));
 
         // If bytes is empty, then we were passed empty input
@@ -258,8 +268,7 @@ class GeoPHP
 
         // First char is a tab, space or carriage-return. trim it and try again
         if ($bytes[1] == 9 || $bytes[1] == 10 || $bytes[1] == 32) {
-            $ltinput = ltrim($input);
-            return self::detectFormat($ltinput);
+            return self::detectFormat(ltrim($input));
         }
 
         // Detect WKB or EWKB -- first byte is 1 (little endian indicator)
@@ -323,7 +332,9 @@ class GeoPHP
         }
 
         // We need an 8 byte string for geohash and unpacked WKB / WKT
+        /** @psalm-suppress ImpureFunctionCall */
         fseek($mem, 0);
+        /** @psalm-suppress ImpureFunctionCall */
         $string = trim(fread($mem, 8));
 
         // Detect geohash - geohash ONLY contains lowercase chars and numerics

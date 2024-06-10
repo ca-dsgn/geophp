@@ -9,6 +9,7 @@ use Tochka\GeoPHP\Geometry\GeometryInterface;
  * for reading and writing to and from Geometry objects
  *
  * @api
+ * @psalm-immutable
  */
 interface GeoAdapterInterface
 {

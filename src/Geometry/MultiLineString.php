@@ -7,15 +7,13 @@ namespace Tochka\GeoPHP\Geometry;
  *
  * @api
  * @extends Collection<LineString>
+ * @psalm-immutable
  */
-class MultiLineString extends Collection
+readonly class MultiLineString extends Collection
 {
-    public function geometryType(): string
-    {
-        return 'MultiLineString';
-    }
-
-    // MultiLineString is closed if all it's components are closed
+    /**
+     * MultiLineString is closed if all it's components are closed
+     */
     public function isClosed(): bool
     {
         foreach ($this->getComponents() as $line) {
@@ -24,5 +22,10 @@ class MultiLineString extends Collection
             }
         }
         return true;
+    }
+
+    public function geometryType(): string
+    {
+        return 'MultiLineString';
     }
 }
