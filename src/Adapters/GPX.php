@@ -46,7 +46,7 @@ readonly class GPX implements GeoAdapterInterface
             return '';
         }
 
-        $nss = $namespace ? $namespace . ':' : '';
+        $nss = $namespace !== null ? $namespace . ':' : '';
         return '<' . $nss . 'gpx creator="geoPHP" version="1.0">' . $this->geometryToGPX($geometry, $nss) . '</' . $nss . 'gpx>';
     }
 

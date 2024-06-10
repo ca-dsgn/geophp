@@ -30,7 +30,7 @@ readonly class WKT implements GeoAdapterInterface
         $input = trim($input);
 
         // If it contains a ';', then it contains additional SRID data
-        if (strpos($input, ';')) {
+        if (str_contains($input, ';')) {
             $parts = explode(';', $input);
             $input = $parts[1];
             $eparts = explode('=', $parts[0]);

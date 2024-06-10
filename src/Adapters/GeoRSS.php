@@ -39,11 +39,11 @@ readonly class GeoRSS implements GeoAdapterInterface
      */
     public function write(GeometryInterface $geometry, ?string $namespace = null): string
     {
-        $nss = $namespace ? $namespace . ':' : '';
+        $nss = $namespace !== null ? $namespace . ':' : '';
         return $this->geometryToGeoRSS($geometry, $nss);
     }
 
-    private function geometryFromText($text): GeometryInterface
+    private function geometryFromText(string $text): GeometryInterface
     {
         // Change to lower-case, strip all CDATA, and de-namespace
         $text = strtolower($text);

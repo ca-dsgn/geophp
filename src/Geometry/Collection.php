@@ -29,12 +29,11 @@ abstract readonly class Collection extends Geometry
     public function __construct(array $components = [], ?\GEOSGeometry $geos = null, ?int $srid = null)
     {
         foreach ($components as $component) {
-            if ($component instanceof GeometryInterface) {
-                $this->components[] = $component;
-            } else {
+            if (!$component instanceof GeometryInterface) {
                 throw new \RuntimeException("Cannot create a collection with non-geometries");
             }
         }
+        $this->components = $components;
 
         parent::__construct($geos, $srid);
     }

@@ -22,7 +22,7 @@ readonly class EWKT extends WKT
     public function write(GeometryInterface $geometry): string
     {
         $srid = $geometry->getSRID();
-        if ($srid) {
+        if ($srid !== null) {
             $wkt = 'SRID=' . $srid . ';';
             $wkt .= $geometry->out('wkt');
             return $wkt;

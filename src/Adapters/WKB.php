@@ -100,6 +100,7 @@ readonly class WKB implements GeoAdapterInterface
     {
         /** @psalm-suppress ImpureFunctionCall */
         $pointCoords = unpack("d*", fread($memory, $dimension * 8));
+        /** @psalm-suppress RiskyTruthyFalsyComparison */
         if (!empty($pointCoords)) {
             return new Point($pointCoords[1], $pointCoords[2], $geos, $srid);
         }

@@ -44,14 +44,14 @@ class GeoPHP
         $typeMap = self::getAdapterMap();
 
         // Auto-detect type if needed
-        if (!$type) {
+        if ($type === null) {
             // If the user is trying to load a Geometry from a Geometry... Just pass it back
             if ($data instanceof GeometryInterface) {
                 return $data;
             }
 
             $detected = self::detectFormat($data);
-            if (!$detected) {
+            if ($detected === false) {
                 return null;
             }
 
@@ -194,9 +194,6 @@ class GeoPHP
         $geometryTypes = [];
 
         foreach ($geometry as $item) {
-            if (!$item) {
-                continue;
-            }
             if ($item instanceof MultiPoint || $item instanceof MultiPolygon || $item instanceof MultiLineString || $item instanceof GeometryCollection) {
                 foreach ($item->getComponents() as $component) {
                     $geometries[] = $component;
@@ -262,6 +259,7 @@ class GeoPHP
         $bytes = unpack("c*", fread($mem, 11));
 
         // If bytes is empty, then we were passed empty input
+        /** @psalm-suppress RiskyTruthyFalsyComparison */
         if (empty($bytes)) {
             return false;
         }

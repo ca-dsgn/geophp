@@ -28,6 +28,7 @@ abstract readonly class Geometry implements GeometryInterface
                     $this->geos->setSRID($srid);
                 }
             } catch (\Throwable) {
+                $this->geos = $geos;
             }
         } else {
             $this->geos = $geos;

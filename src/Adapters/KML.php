@@ -54,7 +54,7 @@ readonly class KML implements GeoAdapterInterface
      */
     public function write(GeometryInterface $geometry, string $namespace = null): string
     {
-        $nss = $namespace ? $namespace . ':' : '';
+        $nss = $namespace !== null ? $namespace . ':' : '';
         return $this->geometryToKML($geometry, $nss);
     }
 

@@ -22,7 +22,7 @@ readonly class Polygon extends Collection
         return $this->exteriorRing();
     }
 
-    public function getArea($exteriorOnly = false, $signed = false): float
+    public function getArea(bool $exteriorOnly = false, bool $signed = false): float
     {
         if ($this->isEmpty()) {
             return 0;
@@ -34,9 +34,6 @@ readonly class Polygon extends Collection
         }
 
         $exteriorRing = $this->getComponents()[0];
-        if (!$exteriorRing instanceof Collection) {
-            return 0;
-        }
         $pts = $exteriorRing->getComponents();
 
         $c = count($pts);
@@ -154,7 +151,7 @@ readonly class Polygon extends Collection
         return $this->numGeometries() - 1;
     }
 
-    public function interiorRingN($n): ?GeometryInterface
+    public function interiorRingN(int $n): ?GeometryInterface
     {
         return $this->geometryN($n + 1);
     }

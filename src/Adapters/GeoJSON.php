@@ -147,10 +147,10 @@ readonly class GeoJSON implements GeoAdapterInterface
      * @param GeometryInterface $geometry The object to serialize
      * @return string|array The GeoJSON string
      */
-    public function write(GeometryInterface $geometry, $return_array = false): string|array
+    public function write(GeometryInterface $geometry, bool $returnArray = false): string|array
     {
         $output = $this->getArray($geometry);
-        if ($return_array) {
+        if ($returnArray) {
             return $output;
         }
 
