@@ -27,13 +27,16 @@ readonly class GeoJSON implements GeoAdapterInterface
     /**
      * Given an object or a string, return a Geometry
      *
-     * @param string|object $input The GeoJSON string or object
+     * @param string|object|array $input The GeoJSON string or object
      * @return GeometryInterface Geometry
      */
-    public function read(string|object $input): GeometryInterface
+    public function read(string|object|array $input): GeometryInterface
     {
         if (is_string($input)) {
             $input = json_decode($input);
+        }
+        if (is_array($input)) {
+            $input = (object) $input;
         }
         if (!is_object($input)) {
             throw new \RuntimeException('Invalid JSON');

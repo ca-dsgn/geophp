@@ -125,7 +125,7 @@ class GeoPHP
     public static function geosInstalled(bool $force = false): bool
     {
         /** @psalm-suppress ImpureFunctionCall */
-        return $force || class_exists('geos', false);
+        return $force || class_exists(\GEOSGeometry::class, false);
     }
 
     /**
